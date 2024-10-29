@@ -54,7 +54,7 @@ LOG_LEVEL=debug
 3. Start the development environment:
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 ### Staging Setup
@@ -63,8 +63,9 @@ docker-compose up --build
 
 ```env
 NODE_ENV=staging
-PORT=3000
+PORT=3001
 COMPOSE_PROJECT_NAME=anonymous-sharing-staging
+COMPOSE_FILE=docker-compose.staging.yml
 
 # MongoDB Configuration
 DB_NAME=anonymous-sharing-staging
@@ -74,12 +75,16 @@ MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@db:27017/${DB_NAME}?authSo
 
 # Application Configuration
 LOG_LEVEL=debug
+
+# Resource Limits
+MEMORY_LIMIT=512M
+CPU_LIMIT=0.5
 ```
 
 2. Start staging environment:
 
 ```bash
-docker-compose -f docker-compose.staging.yml up -d
+docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
 ```
 
 ### Production Setup
@@ -88,8 +93,9 @@ docker-compose -f docker-compose.staging.yml up -d
 
 ```env
 NODE_ENV=production
-PORT=3000
+PORT=3002
 COMPOSE_PROJECT_NAME=anonymous-sharing-prod
+COMPOSE_FILE=docker-compose.production.yml
 
 # MongoDB Configuration
 DB_NAME=anonymous-sharing-prod
@@ -99,12 +105,16 @@ MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@db:27017/${DB_NAME}?authSo
 
 # Application Configuration
 LOG_LEVEL=error
+
+# Resource Limits
+MEMORY_LIMIT=1G
+CPU_LIMIT=1
 ```
 
 2. Start production environment:
 
 ```bash
-docker-compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml --env-file .env.production up -d
 ```
 
 ## Project Structure
@@ -121,11 +131,9 @@ anonymous-sharing/
 │   ├── create.ejs      # Create post page
 │   ├── view.ejs        # View single post
 │   └── list.ejs        # List all posts
-├── docker/
-│   ├── Dockerfile              # Docker configuration
-│   ├── docker-compose.yml      # Development configuration
-│   ├── docker-compose.staging.yml  # Staging configuration
-│   └── docker-compose.production.yml # Production configuration
+├── docker-compose.yml              # Development configuration
+├── docker-compose.staging.yml      # Staging configuration
+├── docker-compose.production.yml    # Production configuration
 ├── .env                # Development environment variables
 ├── .env.staging       # Staging environment variables
 ├── .env.production    # Production environment variables
@@ -149,47 +157,50 @@ anonymous-sharing/
 
 ```bash
 # Start development environment
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop services
-docker-compose down
+docker compose down
 ```
 
 ### Staging
 
 ```bash
 # Start staging environment
-docker-compose -f docker-compose.staging.yml up -d
+docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
 
 # View logs
-docker-compose -f docker-compose.staging.yml logs -f
+docker compose -f docker-compose.staging.yml --env-file .env.staging logs -f
 
 # Stop services
-docker-compose -f docker-compose.staging.yml down
+docker compose -f docker-compose.staging.yml --env-file .env.staging down
 ```
 
 ### Production
 
 ```bash
 # Start production environment
-docker-compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml --env-file .env.production up -d
 
 # View logs
-docker-compose -f docker-compose.production.yml logs -f
+docker compose -f docker-compose.production.yml --env-file .env.production logs -f
 
 # Stop services
-docker-compose -f docker-compose.production.yml down
+docker compose -f docker-compose.production.yml --env-file .env.production down
 ```
 
 ## Health Checks
 
 The application includes health checks for both the application and MongoDB:
 
-- Application: `http://localhost:3000/health`
-- MongoDB: Internal health check every 30 seconds
+- Application: `http://localhost:<PORT>/health`
+  - Development: Port 3000
+  - Staging: Port 3001
+  - Production: Port 3002
+- MongoDB: Internal health check every 10 seconds
 
 ## Resource Limits
 
@@ -206,7 +217,7 @@ The application includes health checks for both the application and MongoDB:
 ### Production
 
 - App: 1 CPU, 1GB RAM
-- MongoDB: 2 CPU, 2GB RAM with authentication
+- MongoDB: Default with authentication and improved reliability
 
 ## Security Considerations
 
@@ -215,11 +226,12 @@ The application includes health checks for both the application and MongoDB:
    - Use strong passwords in staging and production
    - Never commit .env files to version control
    - Rotate MongoDB credentials regularly
+   - Use different ports for each environment to avoid conflicts
 
 2. MongoDB Security:
    - Authentication enabled in all environments
    - Separate users for each environment
-   - Replica set configuration in production
+   - Different database names for each environment
 
 ## Contributing
 
