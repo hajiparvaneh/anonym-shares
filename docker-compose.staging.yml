@@ -15,15 +15,16 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
-          memory: 512M
+          cpus: '${CPU_LIMIT:-0.5}'
+          memory: '${MEMORY_LIMIT:-512M}'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - app-network-staging
 
@@ -37,6 +38,12 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${DB_NAME:-anonymous-sharing-staging}
+    healthcheck:
+      test: ["CMD", "mongosh", "-u", "${MONGO_USER}", "-p", "${MONGO_PASSWORD}", "--eval", "'db.runCommand(\"ping\").ok'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - app-network-staging
 
@@ -46,5 +53,5 @@ volumes:
 
 networks:
   app-network-staging:
-    name: ${COMPOSE_PROJECT_NAME:-anonymous-sharing-staging}_network
     driver: bridge
+    name: ${COMPOSE_PROJECT_NAME:-anonymous-sharing-staging}-network
