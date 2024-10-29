@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Shared Thoughts</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <nav class="mb-8">
+            <ul class="flex space-x-4">
+                <li><a href="/" class="text-blue-600 hover:text-blue-800">New Post</a></li>
+                <li><a href="/list" class="text-blue-600 hover:text-blue-800">View All</a></li>
+            </ul>
+        </nav>
+
+        <div class="mb-6 flex justify-between items-center">
+            <h1 class="text-3xl font-bold">Recent Shares</h1>
+            <div class="flex items-center space-x-2">
+                <span class="text-gray-600">Sort by:</span>
+                <select 
+                    id="sortSelect"
+                    class="border rounded-lg px-3 py-1"
+                    onchange="window.location.href=`/list?sort=${this.value}`"
+                >
+                    <option value="latest" <%= sort === 'latest' ? 'selected' : '' %>>Latest</option>
+                    <option value="views" <%= sort === 'views' ? 'selected' : '' %>>Most Viewed</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <% posts.forEach(post => { %>
+                <div class="bg-white shadow-md rounded px-6 py-4">
+                    <div class="mb-2 flex justify-between items-start">
+                        <p class="text-gray-600 text-sm">
+                            <%= new Date(post.createdAt).toLocaleDateString() %> • 
+                            <%= post.views %> views
+                        </p>
+                    </div>
+                    <p class="text-gray-800 whitespace-pre-wrap mb-3">
+                        <%= post.content.length > 200 ? post.content.substring(0, 200) + '...' : post.content %>
+                    </p>
+                    <a 
+                        href="/view/<%= post.uuid %>" 
+                        class="text-blue-600 hover:text-blue-800"
+                    >
+                        Read more →
+                    </a>
+                </div>
+            <% }); %>
+        </div>
+
+        <% if (posts.length === 0) { %>
+            <div class="text-center py-8">
+                <p class="text-gray-600">No posts yet. Be the first to share!</p>
+            </div>
+        <% } %>
+
+        <% if (pages > 1) { %>
+            <div class="mt-8 flex justify-center space-x-2">
+                <% for(let i = 1; i <= pages; i++) { %>
+                    <a 
+                        href="/list?page=<%= i %>&sort=<%= sort %>"
+                        class="px-4 py-2 border rounded <%= currentPage === i ? 'bg-blue-500 text-white' : 'bg-white text-blue-500 hover:bg-blue-100' %>"
+                    >
+                        <%= i %>
+                    </a>
+                <% } %>
+            </div>
+        <% } %>
+    </div>
+</body>
+</html>
