@@ -87,6 +87,7 @@ const connectDB = async () => {
 
     } catch (err) {
         console.error('Database connection error:', err.message);
+        const environment = process.env.NODE_ENV || 'development';
         // In production, you might want to retry connection before exiting
         if (environment === 'production') {
             console.error('Critical database connection failure. Retrying in 5 seconds...');
