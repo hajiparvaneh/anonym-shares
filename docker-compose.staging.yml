@@ -8,9 +8,12 @@ services:
       args:
         NODE_ENV: staging
     ports:
-      - "${PORT:-3001}:3000"
+      - "3001:3000"
     env_file:
       - .env.staging
+    environment:
+      - NODE_ENV=staging
+      - PORT=3000    # Explicitly set container port
     restart: unless-stopped
     deploy:
       resources:

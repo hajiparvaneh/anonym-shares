@@ -11,6 +11,9 @@ services:
       - "${PORT:-3002}:3000"
     env_file:
       - .env.production
+    environment:
+      - NODE_ENV=production
+      - PORT=3000    # Explicitly set container port
     restart: always
     deploy:
       resources:
