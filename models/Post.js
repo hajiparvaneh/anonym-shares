@@ -6,10 +6,12 @@ const PostSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
+    slug: { type: String, required: false },
     content: {
         type: String,
         required: true
     },
+    preview: { type: String, required: false },
     views: {
         type: Number,
         default: 0

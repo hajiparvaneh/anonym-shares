@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof meta === 'object' ? meta.title : 'Anonymous Thoughts' %></title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="<%= typeof meta === 'object' ? meta.description : 'Share your thoughts anonymously with the world.' %>">
+    <% if (typeof meta === 'object' && meta.canonical) { %>
+    <link rel="canonical" href="<%= meta.canonical %>" />
+    <% } %>
+    
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="<%= typeof meta === 'object' ? meta.title : 'Anonymous Thoughts' %>">
+    <meta property="og:description" content="<%= typeof meta === 'object' ? meta.description : 'Share your thoughts anonymously with the world.' %>">
+    <meta property="og:type" content="<%= typeof meta === 'object' ? meta.type : 'website' %>">
+    <% if (typeof meta === 'object' && meta.canonical) { %>
+    <meta property="og:url" content="<%= meta.canonical %>">
+    <% } %>
+    
+    <%- defineContent('meta') %>
+    
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    
+    <!-- Preconnect to CDN -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <%- include('../partials/header', { currentPage: locals.currentPage || '' }) %>
+    
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
+        <%- body %>
+    </main>
+
+    <%- include('../partials/footer') %>
+    <%- defineContent('scripts') %>
+</body>
+</html>

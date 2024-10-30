@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const connectDB = require('./config/db');
 const postRoutes = require('./routes/posts');
+const expressLayouts = require('express-ejs-layouts');
 
 const app = express();
 
@@ -9,6 +10,8 @@ const app = express();
 connectDB();
 
 // View engine setup
+app.use(expressLayouts);
+app.set('layout', 'layouts/main');
 app.set('view engine', 'ejs');
 
 // Middleware
