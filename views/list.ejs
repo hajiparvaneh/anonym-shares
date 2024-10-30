@@ -1,75 +1,130 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>All Shared Thoughts</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-</head>
-<body class="bg-gray-100">
-    <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <nav class="mb-8">
-            <ul class="flex space-x-4">
-                <li><a href="/" class="text-blue-600 hover:text-blue-800">New Post</a></li>
-                <li><a href="/list" class="text-blue-600 hover:text-blue-800">View All</a></li>
-            </ul>
-        </nav>
+<%- contentFor('body') %>
 
-        <div class="mb-6 flex justify-between items-center">
-            <h1 class="text-3xl font-bold">Recent Shares</h1>
-            <div class="flex items-center space-x-2">
-                <span class="text-gray-600">Sort by:</span>
-                <select 
-                    id="sortSelect"
-                    class="border rounded-lg px-3 py-1"
-                    onchange="window.location.href=`/list?sort=${this.value}`"
-                >
-                    <option value="latest" <%= sort === 'latest' ? 'selected' : '' %>>Latest</option>
-                    <option value="views" <%= sort === 'views' ? 'selected' : '' %>>Most Viewed</option>
-                </select>
-            </div>
+<div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+    <h1 class="text-3xl font-bold text-gray-900">
+        <%= section === 'popular' ? 'Popular Thoughts' : 'Recent Thoughts' %>
+    </h1>
+    
+    <div class="flex flex-col sm:flex-row gap-4 sm:items-center">
+        <!-- Search Form - Updated path to /browse -->
+        <form action="/browse/<%= section %>" method="GET" class="flex" role="search">
+            <label for="search" class="sr-only">Search thoughts</label>
+            <input 
+                type="search"
+                id="search"
+                name="q"
+                value="<%= search %>"
+                placeholder="Search thoughts..."
+                class="rounded-l-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            >
+            <button 
+                type="submit"
+                class="bg-blue-600 text-white px-4 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </form>
+
+        <!-- Sort Dropdown - Updated path to /browse -->
+        <div class="flex items-center space-x-2">
+            <label for="sortSelect" class="text-gray-600">Sort by:</label>
+            <select 
+                id="sortSelect"
+                class="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                onchange="window.location.href=`/browse/${this.value}${window.location.search}`"
+            >
+                <option value="latest" <%= section === 'latest' ? 'selected' : '' %>>Latest</option>
+                <option value="popular" <%= section === 'popular' ? 'selected' : '' %>>Most Viewed</option>
+            </select>
         </div>
+    </div>
+</div>
 
-        <div class="space-y-4">
-            <% posts.forEach(post => { %>
-                <div class="bg-white shadow-md rounded px-6 py-4">
-                    <div class="mb-2 flex justify-between items-start">
-                        <p class="text-gray-600 text-sm">
-                            <%= new Date(post.createdAt).toLocaleDateString() %> • 
-                            <%= post.views %> views
-                        </p>
+<!-- Posts List -->
+<div class="space-y-6" role="feed" aria-label="Thoughts list">
+    <% if (posts.length === 0) { %>
+        <div class="bg-white rounded-lg shadow-sm p-8 text-center">
+            <p class="text-gray-600">
+                <%= search ? 'No thoughts found matching your search.' : 'No thoughts shared yet. Be the first to share!' %>
+            </p>
+        </div>
+    <% } else { %>
+        <% posts.forEach(post => { %>
+            <article class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                <div class="p-6">
+                    <div class="mb-3 flex justify-between items-start">
+                        <time 
+                            datetime="<%= post.createdAt.toISOString() %>"
+                            class="text-sm text-gray-600"
+                        >
+                            <%= new Date(post.createdAt).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            }) %>
+                        </time>
+                        <span class="inline-flex items-center space-x-1 text-sm text-gray-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                                <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                            </svg>
+                            <span><%= post.views.toLocaleString() %> views</span>
+                        </span>
                     </div>
-                    <p class="text-gray-800 whitespace-pre-wrap mb-3">
-                        <%= post.content.length > 200 ? post.content.substring(0, 200) + '...' : post.content %>
+                    
+                    <p class="text-gray-800 whitespace-pre-line mb-4">
+                        <%= post.preview %>
+                        <% if (post.content.length > post.preview.length) { %>
+                            ...
+                        <% } %>
                     </p>
+                    
                     <a 
-                        href="/view/<%= post.uuid %>" 
-                        class="text-blue-600 hover:text-blue-800"
+                        href="/<%= post.slug %>-<%= post.uuid %>" 
+                        class="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800 transition-colors group"
+                        aria-label="Read full thought"
                     >
-                        Read more →
+                        <span>Read more</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" 
+                             class="h-4 w-4 transform group-hover:translate-x-1 transition-transform" 
+                             viewBox="0 0 20 20" 
+                             fill="currentColor">
+                            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                        </svg>
                     </a>
                 </div>
-            <% }); %>
+            </article>
+        <% }); %>
+    <% } %>
+</div>
+
+<!-- Pagination -->
+<% if (pagination.total > 1) { %>
+    <nav class="mt-8" aria-label="Pagination">
+        <div class="flex justify-center items-center space-x-4">
+            <% if (pagination.prevUrl) { %>
+                <a 
+                    href="<%= pagination.prevUrl %>"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                    Previous
+                </a>
+            <% } %>
+            
+            <span class="text-sm text-gray-700">
+                Page <%= pagination.current %> of <%= pagination.total %>
+            </span>
+            
+            <% if (pagination.nextUrl) { %>
+                <a 
+                    href="<%= pagination.nextUrl %>"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                    Next
+                </a>
+            <% } %>
         </div>
-
-        <% if (posts.length === 0) { %>
-            <div class="text-center py-8">
-                <p class="text-gray-600">No posts yet. Be the first to share!</p>
-            </div>
-        <% } %>
-
-        <% if (pages > 1) { %>
-            <div class="mt-8 flex justify-center space-x-2">
-                <% for(let i = 1; i <= pages; i++) { %>
-                    <a 
-                        href="/list?page=<%= i %>&sort=<%= sort %>"
-                        class="px-4 py-2 border rounded <%= currentPage === i ? 'bg-blue-500 text-white' : 'bg-white text-blue-500 hover:bg-blue-100' %>"
-                    >
-                        <%= i %>
-                    </a>
-                <% } %>
-            </div>
-        <% } %>
-    </div>
-</body>
-</html>
+    </nav>
+<% } %>

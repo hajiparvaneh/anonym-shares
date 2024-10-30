@@ -1,0 +1,233 @@
+<%- contentFor('body') %>
+
+<div class="text-center mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">Share Your Thoughts Anonymously</h1>
+    <p class="text-gray-600">Express yourself freely. No account needed. Your thoughts, your voice.</p>
+</div>
+
+<div class="bg-white rounded-lg shadow-sm">
+    <form id="postForm" class="p-8" method="POST" action="/share">
+        <div class="space-y-4">
+            <div>
+                <label for="content" class="sr-only">Your thought</label>
+                <div class="relative">
+                    <textarea 
+                        id="content"
+                        name="content"
+                        rows="6"
+                        class="w-full px-4 py-3 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="What's on your mind?"
+                        required
+                        maxlength="5000"
+                        aria-describedby="contentHint characterCount"
+                    ></textarea>
+                    <div class="absolute bottom-3 right-3 text-sm text-gray-500" id="characterCount">
+                        0/5000
+                    </div>
+                </div>
+                <p id="contentHint" class="mt-2 text-sm text-gray-500">
+                    Share your thoughts, stories, or ideas. Everything stays anonymous.
+                </p>
+            </div>
+
+            <button 
+                type="submit"
+                class="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                id="submitButton"
+            >
+                <span id="submitText">Share Anonymously</span>
+                <svg id="submitSpinner" class="animate-spin ml-2 h-4 w-4 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </button>
+        </div>
+    </form>
+
+    <div 
+        id="resultContainer" 
+        class="hidden border-t border-gray-200 p-8 bg-gray-50 rounded-b-lg"
+        aria-live="polite"
+    >
+        <div class="flex items-center mb-4 text-green-600">
+            <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <p class="font-medium">Your thought has been shared successfully!</p>
+        </div>
+        
+        <p class="text-gray-600 mb-4">Here's your unique link to share:</p>
+        
+        <div class="flex items-center space-x-2">
+            <div class="relative flex-grow">
+                <input 
+                    type="text" 
+                    id="shareLink" 
+                    class="w-full pr-20 pl-4 py-3 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    readonly
+                    aria-label="Share link"
+                >
+                <button 
+                    type="button"
+                    onclick="copyLink()"
+                    class="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                    aria-label="Copy link to clipboard"
+                >
+                    Copy
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-6 flex justify-center space-x-4">
+            <a 
+                href="/browse/latest"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+                View All Thoughts
+            </a>
+            <button 
+                type="button"
+                onclick="resetForm()"
+                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+                Share Another
+            </button>
+        </div>
+    </div>
+</div>
+
+<% if (recentPosts?.length > 0) { %>
+<section class="mt-12" aria-label="Recent thoughts">
+    <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-gray-900">Recent Thoughts</h2>
+        <a href="/browse/latest" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View all →</a>
+    </div>
+    <div class="space-y-4">
+        <% recentPosts.forEach(post => { %>
+            <a 
+                href="/<%= post.slug %>-<%= post.uuid %>"
+                class="block bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow"
+            >
+                <p class="text-gray-800 line-clamp-2"><%= post.preview %></p>
+                <div class="mt-2 text-sm text-gray-600">
+                    <%= new Date(post.createdAt).toLocaleDateString() %> • 
+                    <%= post.views.toLocaleString() %> views
+                </div>
+            </a>
+        <% }); %>
+    </div>
+</section>
+<% } %>
+
+<%- contentFor('scripts') %>
+<script>
+    const textarea = document.getElementById('content');
+    const charCount = document.getElementById('characterCount');
+    const form = document.getElementById('postForm');
+    const submitButton = document.getElementById('submitButton');
+    const submitText = document.getElementById('submitText');
+    const submitSpinner = document.getElementById('submitSpinner');
+    const resultContainer = document.getElementById('resultContainer');
+
+    // Character counter with debounce
+    let timeout;
+    textarea.addEventListener('input', function() {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            const remaining = this.value.length;
+            charCount.textContent = `${remaining}/5000`;
+            
+            if (remaining >= 4900) {
+                charCount.classList.add('text-red-500');
+            } else {
+                charCount.classList.remove('text-red-500');
+            }
+        }, 100);
+    });
+
+    // Form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const content = textarea.value.trim();
+        if (!content) {
+            alert('Please enter some content before sharing.');
+            textarea.focus();
+            return;
+        }
+        
+        // Disable form
+        textarea.disabled = true;
+        submitButton.disabled = true;
+        submitText.textContent = 'Sharing...';
+        submitSpinner.classList.remove('hidden');
+        
+        try {
+            const response = await fetch('/share', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ content })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Error sharing your thought');
+            }
+            
+            // Show success state
+            const fullUrl = window.location.origin + data.url;
+            const shareLink = document.getElementById('shareLink');
+            shareLink.value = fullUrl;
+            resultContainer.classList.remove('hidden');
+            form.classList.add('opacity-50', 'pointer-events-none');
+            
+            // Auto-select the share link
+            shareLink.select();
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert(error.message || 'Error sharing your thought. Please try again.');
+            resetFormState();
+        }
+    });
+
+    function resetFormState() {
+        textarea.disabled = false;
+        submitButton.disabled = false;
+        submitText.textContent = 'Share Anonymously';
+        submitSpinner.classList.add('hidden');
+    }
+
+    async function copyLink() {
+        const shareLink = document.getElementById('shareLink');
+        const button = event.target.closest('button');
+        try {
+            await navigator.clipboard.writeText(shareLink.value);
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            button.classList.add('bg-green-100', 'text-green-600');
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.classList.remove('bg-green-100', 'text-green-600');
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+            shareLink.select();
+            alert('Failed to copy link. The link has been selected for you to copy manually.');
+        }
+    }
+
+    function resetForm() {
+        form.reset();
+        form.classList.remove('opacity-50', 'pointer-events-none');
+        resultContainer.classList.add('hidden');
+        resetFormState();
+        charCount.textContent = '0/5000';
+        textarea.focus();
+    }
+</script>
