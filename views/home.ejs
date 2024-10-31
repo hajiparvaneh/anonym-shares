@@ -113,112 +113,116 @@
 <%- contentFor('scripts') %>
 <script>
     const textarea = document.getElementById('content');
-    const charCount = document.getElementById('characterCount');
-    const form = document.getElementById('postForm');
-    const submitButton = document.getElementById('submitButton');
-    const submitText = document.getElementById('submitText');
-    const submitSpinner = document.getElementById('submitSpinner');
-    const resultContainer = document.getElementById('resultContainer');
+const charCount = document.getElementById('characterCount');
+const form = document.getElementById('postForm');
+const submitButton = document.getElementById('submitButton');
+const submitText = document.getElementById('submitText');
+const submitSpinner = document.getElementById('submitSpinner');
+const resultContainer = document.getElementById('resultContainer');
 
-    // Character counter with debounce
-    let timeout;
-    textarea.addEventListener('input', function() {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            const remaining = this.value.length;
-            charCount.textContent = `${remaining}/5000`;
-            
-            if (remaining >= 4900) {
-                charCount.classList.add('text-red-500');
-            } else {
-                charCount.classList.remove('text-red-500');
-            }
-        }, 100);
-    });
-
-    // Form submission
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
+// Character counter with debounce
+let timeout;
+textarea.addEventListener('input', function() {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+        const remaining = this.value.length;
+        charCount.textContent = `${remaining}/5000`;
         
-        const content = textarea.value.trim();
-        if (!content) {
-            alert('Please enter some content before sharing.');
-            textarea.focus();
-            return;
+        if (remaining >= 4900) {
+            charCount.classList.add('text-red-500');
+        } else {
+            charCount.classList.remove('text-red-500');
+        }
+    }, 100);
+});
+
+// Form submission
+form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const content = textarea.value.trim();
+    if (!content) {
+        alert('Please enter some content before sharing.');
+        textarea.focus();
+        return;
+    }
+    
+    // Disable form and show loading state
+    textarea.disabled = true;
+    submitButton.disabled = true;
+    submitText.textContent = 'Sharing...';
+    submitSpinner.classList.remove('hidden');
+    
+    try {
+        const response = await fetch('/share', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ content })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Error sharing your thought');
         }
         
-        // Disable form
-        textarea.disabled = true;
-        submitButton.disabled = true;
-        submitText.textContent = 'Sharing...';
-        submitSpinner.classList.remove('hidden');
+        // Show success state
+        const fullUrl = window.location.origin + data.url;
+        const shareLink = document.getElementById('shareLink');
+        shareLink.value = fullUrl;
+        resultContainer.classList.remove('hidden');
+        form.classList.add('opacity-50', 'pointer-events-none');
         
-        try {
-            const response = await fetch('/share', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ content })
-            });
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error || 'Error sharing your thought');
-            }
-            
-            // Show success state
-            const fullUrl = window.location.origin + data.url;
-            const shareLink = document.getElementById('shareLink');
-            shareLink.value = fullUrl;
-            resultContainer.classList.remove('hidden');
-            form.classList.add('opacity-50', 'pointer-events-none');
-            
-            // Auto-select the share link
-            shareLink.select();
-            
-        } catch (error) {
-            console.error('Error:', error);
-            alert(error.message || 'Error sharing your thought. Please try again.');
-            resetFormState();
-        }
-    });
-
-    function resetFormState() {
-        textarea.disabled = false;
-        submitButton.disabled = false;
+        // Update button state after success - remove loading spinner but keep disabled
         submitText.textContent = 'Share Anonymously';
         submitSpinner.classList.add('hidden');
-    }
-
-    async function copyLink() {
-        const shareLink = document.getElementById('shareLink');
-        const button = event.target.closest('button');
-        try {
-            await navigator.clipboard.writeText(shareLink.value);
-            const originalText = button.textContent;
-            button.textContent = 'Copied!';
-            button.classList.add('bg-green-100', 'text-green-600');
-            
-            setTimeout(() => {
-                button.textContent = originalText;
-                button.classList.remove('bg-green-100', 'text-green-600');
-            }, 2000);
-        } catch (err) {
-            console.error('Failed to copy:', err);
-            shareLink.select();
-            alert('Failed to copy link. The link has been selected for you to copy manually.');
-        }
-    }
-
-    function resetForm() {
-        form.reset();
-        form.classList.remove('opacity-50', 'pointer-events-none');
-        resultContainer.classList.add('hidden');
+        
+        // Auto-select the share link
+        shareLink.select();
+        
+    } catch (error) {
+        console.error('Error:', error);
+        alert(error.message || 'Error sharing your thought. Please try again.');
         resetFormState();
-        charCount.textContent = '0/5000';
-        textarea.focus();
     }
+});
+
+function resetFormState() {
+    textarea.disabled = false;
+    submitButton.disabled = false;
+    submitText.textContent = 'Share Anonymously';
+    submitSpinner.classList.add('hidden');
+}
+
+async function copyLink() {
+    const shareLink = document.getElementById('shareLink');
+    const button = event.target.closest('button');
+    try {
+        await navigator.clipboard.writeText(shareLink.value);
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.classList.add('bg-green-100', 'text-green-600');
+        
+        setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove('bg-green-100', 'text-green-600');
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        shareLink.select();
+        alert('Failed to copy link. The link has been selected for you to copy manually.');
+    }
+}
+
+function resetForm() {
+    form.reset();
+    form.classList.remove('opacity-50', 'pointer-events-none');
+    resultContainer.classList.add('hidden');
+    resetFormState();
+    charCount.textContent = '0/5000';
+    textarea.focus();
+}
 </script>

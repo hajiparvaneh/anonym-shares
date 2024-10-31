@@ -3,8 +3,8 @@
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 const DEFAULT_META = {
-    siteName: 'Anonymous Thoughts',
-    title: 'Anonymous Thoughts',
+    siteName: 'Anonymous Shares',
+    title: 'Anonymous Shares',
     description: 'Share your thoughts anonymously with the world.',
     type: 'website',
     image: `${BASE_URL}/og-image.png` // If you have one
@@ -21,7 +21,7 @@ const getMetaData = (page, customMeta = {}) => {
             break;
 
         case 'posts':
-            meta.title = customMeta.title || 'Browse Anonymous Thoughts';
+            meta.title = customMeta.title || 'Browse Anonymous Shares';
             meta.description = customMeta.description || 'Read anonymous thoughts shared by people from around the world.';
             meta.canonical = customMeta.canonical || `${BASE_URL}/browse`;
             break;
