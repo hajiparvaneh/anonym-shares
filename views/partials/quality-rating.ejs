@@ -1,7 +1,38 @@
-<div class="quality-rating" aria-label="Content quality rating: <%= rating %> out of 5">
+<%
+// Helper function to get rating description
+function getRatingText(rating) {
+    if (rating >= 4.5) return "Excellent";
+    if (rating >= 4.0) return "Very Good";
+    if (rating >= 3.5) return "Good";
+    if (rating >= 3.0) return "Above Average";
+    if (rating >= 2.5) return "Average";
+    if (rating >= 2.0) return "Below Average";
+    if (rating >= 1.5) return "Poor";
+    if (rating >= 1.0) return "Very Poor";
+    return "Inadequate";
+}
+
+// Calculate full and half dots
+const fullDots = Math.floor(rating);
+const hasHalfDot = (rating % 1) >= 0.5;
+%>
+
+<div class="quality-rating relative group" 
+     aria-label="Content quality rating: <%= rating %> out of 5">
     <div class="flex items-center space-x-1">
         <% for(let i = 0; i < 5; i++) { %>
-            <span class="w-2 h-2 rounded-full <%= i < rating ? 'bg-blue-500' : 'bg-gray-300' %>"></span>
+            <% if (i < fullDots) { %>
+                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+            <% } else if (i === fullDots && hasHalfDot) { %>
+                <span class="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-gray-300"></span>
+            <% } else { %>
+                <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+            <% } %>
         <% } %>
+    </div>
+    
+    <!-- Tooltip -->
+    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+        <%= getRatingText(rating) %> (<%= rating.toFixed(1) %>)
     </div>
 </div>
