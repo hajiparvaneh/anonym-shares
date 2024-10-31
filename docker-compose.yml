@@ -18,7 +18,8 @@ services:
           cpus: '${CPU_LIMIT:-0.5}'
           memory: '${MEMORY_LIMIT:-512M}'
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
@@ -37,7 +38,10 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
       MONGO_INITDB_DATABASE: ${DB_NAME:-anonymous-sharing}
     healthcheck:
-      disable: true
+      test: ["CMD", "mongosh", "-u", "${MONGO_USER}", "-p", "${MONGO_PASSWORD}", "--eval", "'db.runCommand(\"ping\").ok'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     networks:
       - app-network
 
