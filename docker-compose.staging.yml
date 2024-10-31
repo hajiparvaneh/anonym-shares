@@ -44,8 +44,6 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
       MONGO_INITDB_DATABASE: ${DB_NAME:-anonymous-sharing-staging}
-      MONGODB_AUTH_ENABLED: "true"
-    command: ["mongod", "--auth"]
     healthcheck:
       test: ["CMD", "mongosh", "-u", "${MONGO_USER}", "-p", "${MONGO_PASSWORD}", "--eval", "'db.runCommand(\"ping\").ok'"]
       interval: 10s
