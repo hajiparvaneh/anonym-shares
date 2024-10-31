@@ -104,16 +104,7 @@
     </div>
     <div class="space-y-4">
         <% recentPosts.forEach(post => { %>
-            <a 
-                href="/<%= post.slug %>-<%= post.uuid %>"
-                class="block bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow"
-            >
-                <p class="text-gray-800 line-clamp-2"><%= post.preview %></p>
-                <div class="mt-2 text-sm text-gray-600">
-                    <%= new Date(post.createdAt).toLocaleDateString() %> • 
-                    <%= post.views.toLocaleString() %> views
-                </div>
-            </a>
+            <%- include('partials/post-preview-compact', { post }) %>
         <% }); %>
     </div>
 </section>
