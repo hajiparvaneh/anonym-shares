@@ -18,8 +18,7 @@ services:
           cpus: '${CPU_LIMIT:-0.5}'
           memory: '${MEMORY_LIMIT:-512M}'
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
