@@ -63,18 +63,29 @@
                 <input 
                     type="text" 
                     id="shareLink" 
-                    class="w-full pr-20 pl-4 py-3 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    class="w-full pr-36 pl-4 py-3 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     readonly
                     aria-label="Share link"
                 >
-                <button 
-                    type="button"
-                    onclick="copyLink()"
-                    class="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                    aria-label="Copy link to clipboard"
-                >
-                    Copy
-                </button>
+                <div class="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-2">
+                    <a 
+                        id="viewLink"
+                        href="#"
+                        class="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                        aria-label="View shared post"
+                        target="_blank"
+                    >
+                        View
+                    </a>
+                    <button 
+                        type="button"
+                        onclick="copyLink()"
+                        class="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                        aria-label="Copy link to clipboard"
+                    >
+                        Copy
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -172,7 +183,9 @@ form.addEventListener('submit', async function(e) {
         // Show success state
         const fullUrl = window.location.origin + data.url;
         const shareLink = document.getElementById('shareLink');
+        const viewLink = document.getElementById('viewLink');
         shareLink.value = fullUrl;
+        viewLink.href = fullUrl;  // Set the view link href
         resultContainer.classList.remove('hidden');
         form.classList.add('opacity-50', 'pointer-events-none');
         
