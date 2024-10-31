@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const connectDB = require('./config/db');
 const postRoutes = require('./routes/posts');
 const expressLayouts = require('express-ejs-layouts');
+const createRateLimiter = require('./middleware/rateLimiter');
 
 const app = express();
 
@@ -18,6 +19,16 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
+
+// Create rate limiters
+const apiLimiter = createRateLimiter(
+    parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 600000,
+    parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 150
+);
+
+// Apply rate limiting to specific routes
+app.use('/share', apiLimiter); // Limit post creation
+app.use('/api/search', apiLimiter); // Limit API searches
 
 // Basic error handler
 app.use((err, req, res, next) => {
