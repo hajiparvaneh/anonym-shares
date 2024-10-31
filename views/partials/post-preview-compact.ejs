@@ -3,8 +3,11 @@
     class="block bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow"
 >
     <p class="text-gray-800 line-clamp-2"><%= post.preview %></p>
-    <div class="mt-2 text-sm text-gray-600">
-        <%= new Date(post.createdAt).toLocaleDateString() %> • 
-        <%= post.views.toLocaleString() %> views
+    <div class="mt-2 flex justify-between items-center">
+        <div class="text-sm text-gray-600">
+            <%= new Date(post.createdAt).toLocaleDateString() %> • 
+            <%= post.views.toLocaleString() %> views
+        </div>
+        <%- include('quality-rating', { rating: typeof post.qualityRating !== 'undefined' ? post.qualityRating : 0 }) %>
     </div>
 </a>

@@ -1,123 +1,128 @@
 <%- contentFor('meta') %>
-<meta property="article:published_time" content="<%= post.createdAt.toISOString() %>">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="<%= post.content.substring(0, 60) %>...">
-<meta name="twitter:description" content="<%= post.preview %>">
+    <meta property="article:published_time" content="<%= post.createdAt.toISOString() %>">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="<%= post.content.substring(0, 60) %>...">
+    <meta name="twitter:description" content="<%= post.preview %>">
 
-<%- contentFor('body') %>
-<article class="bg-white rounded-lg shadow-sm">
-    <div class="p-8">
-        <!-- Post Metadata -->
-        <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
-            <div class="flex items-center space-x-4">
-                <time 
-                    datetime="<%= post.createdAt.toISOString() %>"
-                    class="text-sm text-gray-600 flex items-center"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
-                    </svg>
-                    <%= new Date(post.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    }) %>
-                </time>
-                <span class="text-sm text-gray-600 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
-                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
-                    </svg>
-                    <%= post.views.toLocaleString() %> views
-                </span>
+    <%- contentFor('body') %>
+        <article class="bg-white rounded-lg shadow-sm">
+            <div class="p-8">
+                <!-- Post Metadata -->
+                <div class="mb-6 flex flex-wrap justify-between items-center gap-4">
+                    <div class="flex items-center space-x-4">
+                        <time datetime="<%= post.createdAt.toISOString() %>"
+                            class="text-sm text-gray-600 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <%= new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric' , month: 'long' ,
+                                day: 'numeric' }) %>
+                        </time>
+                        <span class="text-sm text-gray-600 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                                <path fill-rule="evenodd"
+                                    d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                            <%= post.views.toLocaleString() %> views
+                        </span>
+                        <!-- Added Post Rating with label -->
+                        <div class="flex items-center">
+                            <span class="text-sm text-gray-600 mr-2">Quality:</span>
+                            <%- include('partials/quality-rating', { rating: post.qualityRating }) %>
+                        </div>
+                    </div>
+
+                    <!-- Share Button -->
+                    <button type="button" onclick="sharePost()"
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path
+                                d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                        </svg>
+                        Share
+                    </button>
+                </div>
+
+                <!-- Post Content -->
+                <div class="prose max-w-none">
+                    <p class="whitespace-pre-line text-gray-800 text-lg leading-relaxed">
+                        <%= post.content %>
+                    </p>
+                </div>
             </div>
-            
-            <!-- Share Button -->
-            <button 
-                type="button"
-                onclick="sharePost()"
-                class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z"/>
-                </svg>
-                Share
-            </button>
-        </div>
+        </article>
 
-        <!-- Post Content -->
-        <div class="prose max-w-none">
-            <p class="whitespace-pre-line text-gray-800 text-lg leading-relaxed">
-                <%= post.content %>
-            </p>
-        </div>
-    </div>
-</article>
+        <!-- Related/Recent Posts -->
+        <% if (recentPosts?.length> 0) { %>
+            <section class="mt-8" aria-label="More thoughts">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">More Recent Thoughts</h2>
+                <div class="space-y-4">
+                    <% recentPosts.forEach(recentPost=> { %>
+                        <% if (recentPost.uuid !==post.uuid) { %>
+                            <%- include('partials/post-preview-compact', { post: recentPost }) %>
+                                <% } %>
+                                    <% }); %>
+                </div>
+            </section>
+            <% } %>
 
-<!-- Related/Recent Posts -->
-<% if (recentPosts?.length > 0) { %>
-    <section class="mt-8" aria-label="More thoughts">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4">More Recent Thoughts</h2>
-        <div class="space-y-4">
-            <% recentPosts.forEach(recentPost => { %>
-                <% if (recentPost.uuid !== post.uuid) { %>
-                    <%- include('partials/post-preview-compact', { post: recentPost }) %>
-                <% } %>
-            <% }); %>
-        </div>
-    </section>
-<% } %>
+                <%- contentFor('scripts') %>
+                    <script>
+                        // Helper function to escape content for JavaScript strings
+                        function escapeJS(str) {
+                            return str
+                                .replace(/\\/g, '\\\\')
+                                .replace(/'/g, "\\'")
+                                .replace(/"/g, '\\"')
+                                .replace(/\n/g, '\\n')
+                                .replace(/\r/g, '\\r')
+                                .replace(/\t/g, '\\t');
+                        }
 
-<%- contentFor('scripts') %>
-<script>
-    // Helper function to escape content for JavaScript strings
-    function escapeJS(str) {
-        return str
-            .replace(/\\/g, '\\\\')
-            .replace(/'/g, "\\'")
-            .replace(/"/g, '\\"')
-            .replace(/\n/g, '\\n')
-            .replace(/\r/g, '\\r')
-            .replace(/\t/g, '\\t');
-    }
+                        const shareTitle = escapeJS('<%= post.content.substring(0, 60) %>') + '...';
+                        const shareText = escapeJS('<%= post.preview %>');
+                        const shareUrl = window.location.href;
 
-    const shareTitle = escapeJS('<%= post.content.substring(0, 60) %>') + '...';
-    const shareText = escapeJS('<%= post.preview %>');
-    const shareUrl = window.location.href;
+                        async function sharePost() {
+                            const shareData = {
+                                title: shareTitle,
+                                text: shareText,
+                                url: shareUrl
+                            };
 
-    async function sharePost() {
-        const shareData = {
-            title: shareTitle,
-            text: shareText,
-            url: shareUrl
-        };
-
-        try {
-            if (navigator.share) {
-                await navigator.share(shareData);
-            } else {
-                await navigator.clipboard.writeText(shareUrl);
-                const button = document.querySelector('button[onclick="sharePost()"]');
-                const originalText = button.innerHTML;
-                button.innerHTML = `
+                            try {
+                                if (navigator.share) {
+                                    await navigator.share(shareData);
+                                } else {
+                                    await navigator.clipboard.writeText(shareUrl);
+                                    const button = document.querySelector('button[onclick="sharePost()"]');
+                                    const originalText = button.innerHTML;
+                                    button.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                     </svg>
                     Copied!
                 `;
-                setTimeout(() => {
-                    button.innerHTML = originalText;
-                }, 2000);
-            }
-        } catch (err) {
-            console.error('Error sharing:', err);
-            try {
-                await navigator.clipboard.writeText(shareUrl);
-                alert('Link copied to clipboard!');
-            } catch (clipboardErr) {
-                console.error('Clipboard error:', clipboardErr);
-                alert('Could not share. Please copy the URL from your browser\'s address bar.');
-            }
-        }
-    }
-</script>
+                                    setTimeout(() => {
+                                        button.innerHTML = originalText;
+                                    }, 2000);
+                                }
+                            } catch (err) {
+                                console.error('Error sharing:', err);
+                                try {
+                                    await navigator.clipboard.writeText(shareUrl);
+                                    alert('Link copied to clipboard!');
+                                } catch (clipboardErr) {
+                                    console.error('Clipboard error:', clipboardErr);
+                                    alert('Could not share. Please copy the URL from your browser\'s address bar.');
+                                }
+                            }
+                        }
+                    </script>

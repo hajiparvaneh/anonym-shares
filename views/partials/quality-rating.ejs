@@ -1,0 +1,7 @@
+<div class="quality-rating" aria-label="Content quality rating: <%= rating %> out of 5">
+    <div class="flex items-center space-x-1">
+        <% for(let i = 0; i < 5; i++) { %>
+            <span class="w-2 h-2 rounded-full <%= i < rating ? 'bg-blue-500' : 'bg-gray-300' %>"></span>
+        <% } %>
+    </div>
+</div>
