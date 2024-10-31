@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= typeof meta === 'object' ? meta.title : 'Anonymous Thoughts' %></title>
+    <title><%= typeof meta === 'object' ? meta.title : 'Anonymous Shares' %></title>
     
     <!-- SEO Meta Tags -->
     <meta name="description" content="<%= typeof meta === 'object' ? meta.description : 'Share your thoughts anonymously with the world.' %>">
@@ -12,7 +12,7 @@
     <% } %>
     
     <!-- Open Graph Tags -->
-    <meta property="og:title" content="<%= typeof meta === 'object' ? meta.title : 'Anonymous Thoughts' %>">
+    <meta property="og:title" content="<%= typeof meta === 'object' ? meta.title : 'Anonymous Shares' %>">
     <meta property="og:description" content="<%= typeof meta === 'object' ? meta.description : 'Share your thoughts anonymously with the world.' %>">
     <meta property="og:type" content="<%= typeof meta === 'object' ? meta.type : 'website' %>">
     <% if (typeof meta === 'object' && meta.canonical) { %>
