@@ -41,9 +41,10 @@ services:
       MONGO_INITDB_DATABASE: ${DB_NAME:-anonymous-sharing-staging}
     healthcheck:
       test: ["CMD", "mongosh", "-u", "${MONGO_USER}", "-p", "${MONGO_PASSWORD}", "--eval", "'db.runCommand(\"ping\").ok'"]
-      interval: 1000s
-      timeout: 5s
-      retries: 3
+      interval: 1000s       # The time between health checks once the container is up
+      timeout: 5s           # The time to wait for the check to complete
+      retries: 3            # Number of retries before the container is considered unhealthy
+      start_period: 30s     # The initial period during which health check failures will be ignored
     networks:
       - app-network-staging
 
