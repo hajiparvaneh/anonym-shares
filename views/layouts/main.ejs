@@ -3,23 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= typeof meta === 'object' ? meta.title : 'Anonymous Shares' %></title>
     
-    <!-- SEO Meta Tags -->
-    <meta name="description" content="<%= typeof meta === 'object' ? meta.description : 'Share your thoughts anonymously with the world.' %>">
-    <% if (typeof meta === 'object' && meta.canonical) { %>
-    <link rel="canonical" href="<%= meta.canonical %>" />
-    <% } %>
+    <%
+    try {
+        // Get page type and data from locals
+        const pageType = locals.pageType || 'home';
+        const pageData = locals.pageData || {};
+        
+        // Generate meta tags
+        const meta = generateMetaTags(pageType, pageData);
+    %>
+    
+    <title><%= meta.title %></title>
+    
+    <!-- Primary Meta Tags -->
+    <meta name="description" content="<%= meta.description %>">
+    <link rel="canonical" href="<%= meta.canonical %>">
     
     <!-- Open Graph Tags -->
-    <meta property="og:title" content="<%= typeof meta === 'object' ? meta.title : 'Anonymous Shares' %>">
-    <meta property="og:description" content="<%= typeof meta === 'object' ? meta.description : 'Share your thoughts anonymously with the world.' %>">
-    <meta property="og:type" content="<%= typeof meta === 'object' ? meta.type : 'website' %>">
-    <% if (typeof meta === 'object' && meta.canonical) { %>
-    <meta property="og:url" content="<%= meta.canonical %>">
-    <% } %>
+    <meta property="og:type" content="<%= meta.openGraph.type %>">
+    <meta property="og:site_name" content="<%= meta.openGraph.site_name %>">
+    <meta property="og:title" content="<%= meta.openGraph.title %>">
+    <meta property="og:description" content="<%= meta.openGraph.description %>">
+    <meta property="og:url" content="<%= meta.openGraph.url %>">
+    <meta property="og:locale" content="<%= meta.openGraph.locale %>">
     
-    <%- defineContent('meta') %>
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="<%= meta.twitter.card %>">
+    <% if (meta.twitter.site) { %>
+    <meta name="twitter:site" content="<%= meta.twitter.site %>">
+    <% } %>
+    <meta name="twitter:title" content="<%= meta.twitter.title %>">
+    <meta name="twitter:description" content="<%= meta.twitter.description %>">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+        <%- JSON.stringify(meta.structured) %>
+    </script>
+    
+    <% } catch (error) { 
+        console.error('Error generating meta tags:', error);
+        // Fallback meta tags
+        const fallbackTitle = siteConfig.siteName;
+        const fallbackDescription = siteConfig.baseDescription;
+    %>
+        <title><%= fallbackTitle %></title>
+        <meta name="description" content="<%= fallbackDescription %>">
+    <% } %>
     
     <!-- Tailwind CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -34,23 +64,20 @@
         <%- body %>
         <!-- Floating Action Button -->
         <a href="/" 
-        class="absolute bottom-0 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-50"
-        aria-label="Create new post">
-            <!-- Plus Icon using SVG -->
+           class="absolute bottom-0 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-50"
+           aria-label="Create new post">
             <svg xmlns="http://www.w3.org/2000/svg" 
-                class="h-6 w-6" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor">
+                 class="h-6 w-6" 
+                 fill="none" 
+                 viewBox="0 0 24 24" 
+                 stroke="currentColor">
                 <path stroke-linecap="round" 
-                    stroke-linejoin="round" 
-                    stroke-width="2" 
-                    d="M12 4v16m8-8H4" />
+                      stroke-linejoin="round" 
+                      stroke-width="2" 
+                      d="M12 4v16m8-8H4" />
             </svg>
         </a>
     </main>
-
-    
 
     <%- include('../partials/footer') %>
     <%- defineContent('scripts') %>
