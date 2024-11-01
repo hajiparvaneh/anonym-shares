@@ -11,6 +11,7 @@ const morgan = require('morgan');
 const path = require('path');
 const generateMetaTags = require('./utils/seo');
 const configureExpress = require('./config/express');
+const wwwRedirect = require('./middleware/wwwRedirect');
 
 const app = express();
 
@@ -45,6 +46,9 @@ if (process.env.NODE_ENV === 'production') {
 } else {
     app.use(morgan('dev'));
 }
+
+// Add before other middleware
+app.use(wwwRedirect());
 
 // View engine setup
 app.use(expressLayouts);

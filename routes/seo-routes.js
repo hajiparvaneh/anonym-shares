@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const Post = require('../models/Post');
+const getEnvironmentConfig = require('../config/environment');
 
 // Sitemap cache configuration
 let sitemapCache = {
@@ -11,13 +12,22 @@ let sitemapCache = {
 
 // Robots.txt route
 router.get('/robots.txt', (req, res) => {
-    const baseUrl = process.env.BASE_URL || `https://${req.get('host')}`;
-    const robotsTxt = `
+    const config = getEnvironmentConfig();
+    const baseUrl = config.baseUrl;
+    
+    // Different robots.txt content based on environment
+    let robotsTxt = '';
+    
+    if (process.env.NODE_ENV === 'production') {
+        robotsTxt = `
 User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /share
 Disallow: /search?*
+
+# Preferred domain
+Host: www.anonymshares.com
 
 # Crawl-delay
 Crawl-delay: 5
@@ -25,6 +35,15 @@ Crawl-delay: 5
 # Sitemaps
 Sitemap: ${baseUrl}/sitemap.xml
 `.trim();
+    } else {
+        // More restrictive for non-production environments
+        robotsTxt = `
+User-agent: *
+Disallow: /
+
+# Non-production environment - No indexing allowed
+`.trim();
+    }
 
     res.type('text/plain');
     res.send(robotsTxt);
