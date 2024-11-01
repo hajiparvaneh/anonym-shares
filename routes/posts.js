@@ -67,6 +67,10 @@ router.get('/', async (req, res) => {
 router.post('/share', async (req, res) => {
     console.log('[Route] POST /share - Creating new post');
     try {
+        if (req.body.email) {
+            // If the email field is filled, treat it as a bot.
+            return res.status(400).send('Bot detected.');
+        }
         const content = req.body.content?.trim();
         console.log('[Route] Post content length:', content?.length || 0);
 
