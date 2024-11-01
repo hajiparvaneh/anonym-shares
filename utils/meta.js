@@ -28,7 +28,7 @@ const getMetaData = (page, customMeta = {}) => {
 
         case 'view':
             // For single post view, use custom meta
-            meta.title = customMeta.title || 'Anonymous Thought';
+            meta.title = customMeta.title || 'Anonymous Shares';
             meta.description = customMeta.description;
             meta.canonical = customMeta.canonical;
             meta.type = 'article';
