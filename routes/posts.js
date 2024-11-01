@@ -167,7 +167,66 @@ function rateContentQuality(content) {
     return finalScore;
 }
 
-// Posts listing - MOVED BEFORE INDIVIDUAL POST ROUTE
+// Move the search route before the slugId route to prevent conflicts
+router.get('/search/:query?', async (req, res) => {
+    const searchQuery = req.params.query || '';
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    
+    console.log('[Route] GET /search/%s - Searching posts', searchQuery, {
+        page,
+        limit
+    });
+
+    try {
+        let query = {};
+        if (searchQuery) {
+            // Decode the URL-encoded search query
+            const decodedQuery = decodeURIComponent(searchQuery);
+            query.content = { $regex: decodedQuery, $options: 'i' };
+            console.log('[DB] Search query:', query);
+        }
+
+        console.log('[DB] Executing search query with parameters:', {
+            query,
+            page,
+            limit
+        });
+
+        const posts = await Post.find(query)
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit)
+            .select('slug uuid content preview createdAt views qualityRating');
+
+        const total = await Post.countDocuments(query);
+        console.log('[Route] Found total posts:', total);
+
+        const totalPages = Math.ceil(total / limit);
+        const baseUrl = `/search/${searchQuery}`;
+
+        console.log('[Route] Rendering search results with posts:', posts.length);
+        res.render('list', {
+            section: 'search',
+            search: searchQuery,
+            posts,
+            pagination: {
+                current: page,
+                total: totalPages,
+                prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
+                nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null
+            }
+        });
+    } catch (err) {
+        console.error('[Error] Search error:', err);
+        res.status(500).render('error', {
+            currentPage: 'error',
+            error: 'Error searching posts'
+        });
+    }
+});
+
+// Browse posts with section (latest/popular)
 router.get('/browse/:section?', async (req, res) => {
     const section = req.params.section || 'latest';
     const search = req.query.q || '';
@@ -180,33 +239,37 @@ router.get('/browse/:section?', async (req, res) => {
         limit
     });
 
-    try {
-        let query = {};
-        if (search) {
-            query.content = { $regex: search, $options: 'i' };
-            console.log('[DB] Search query:', query);
-        }
+    // Redirect to search route if search query is present
+    if (search) {
+        console.log('[Route] Redirecting to search route with query:', search);
+        return res.redirect(`/search/${encodeURIComponent(search)}`);
+    }
 
+    try {
         let sortQuery = { createdAt: -1 };
         if (section === 'popular') {
             sortQuery = { views: -1 };
             console.log('[DB] Sorting by popularity');
         }
 
+        if (!['latest', 'popular'].includes(section)) {
+            console.warn('[Route] Invalid section requested:', section);
+            return res.redirect('/browse/latest');
+        }
+
         console.log('[DB] Executing posts query with parameters:', {
-            query,
             sort: sortQuery,
             page,
             limit
         });
 
-        const posts = await Post.find(query)
+        const posts = await Post.find()
             .sort(sortQuery)
             .skip((page - 1) * limit)
             .limit(limit)
             .select('slug uuid content preview createdAt views qualityRating');
 
-        const total = await Post.countDocuments(query);
+        const total = await Post.countDocuments();
         console.log('[Route] Found total posts:', total);
 
         const totalPages = Math.ceil(total / limit);
@@ -214,14 +277,15 @@ router.get('/browse/:section?', async (req, res) => {
 
         console.log('[Route] Rendering list view with posts:', posts.length);
         res.render('list', {
+            currentPage: 'browse',
             section,
-            search,
+            search: '',
             posts,
             pagination: {
                 current: page,
                 total: totalPages,
-                prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}${search ? '&q=' + search : ''}` : null,
-                nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}${search ? '&q=' + search : ''}` : null
+                prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
+                nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null
             }
         });
     } catch (err) {
