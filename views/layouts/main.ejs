@@ -10,45 +10,66 @@
         const pageType = locals.pageType || 'home';
         const pageData = locals.pageData || {};
         
+        // Debug logging
+        console.log('[Template] Generating meta tags for:', {
+            pageType,
+            pageData: {
+                ...pageData,
+                content: pageData.content ? pageData.content.substring(0, 50) + '...' : undefined
+            }
+        });
+        
         // Generate meta tags
         const meta = generateMetaTags(pageType, pageData);
+        
+        // Debug logging
+        console.log('[Template] Generated meta tags:', {
+            title: meta.title,
+            description: meta.description?.substring(0, 50) + '...'
+        });
     %>
     
-    <title><%= meta.title %></title>
+    <title><%= meta.title || 'Anonymous Shares' %></title>
     
     <!-- Primary Meta Tags -->
-    <meta name="description" content="<%= meta.description %>">
-    <link rel="canonical" href="<%= meta.canonical %>">
+    <meta name="description" content="<%= meta.description || 'Share your thoughts anonymously with the world.' %>">
+    <link rel="canonical" href="<%= meta.canonical || (locals.baseUrl || '') + (locals.currentUrl || '') %>">
     
     <!-- Open Graph Tags -->
-    <meta property="og:type" content="<%= meta.openGraph.type %>">
-    <meta property="og:site_name" content="<%= meta.openGraph.site_name %>">
-    <meta property="og:title" content="<%= meta.openGraph.title %>">
-    <meta property="og:description" content="<%= meta.openGraph.description %>">
-    <meta property="og:url" content="<%= meta.openGraph.url %>">
-    <meta property="og:locale" content="<%= meta.openGraph.locale %>">
+    <meta property="og:type" content="<%= meta.openGraph.type || 'website' %>">
+    <meta property="og:site_name" content="<%= meta.openGraph.site_name || 'Anonymous Shares' %>">
+    <meta property="og:title" content="<%= meta.openGraph.title || meta.title || 'Anonymous Shares' %>">
+    <meta property="og:description" content="<%= meta.openGraph.description || meta.description || 'Share your thoughts anonymously with the world.' %>">
+    <meta property="og:url" content="<%= meta.openGraph.url || meta.canonical || (locals.baseUrl || '') + (locals.currentUrl || '') %>">
+    <meta property="og:locale" content="<%= meta.openGraph.locale || 'en_US' %>">
     
     <!-- Twitter Card Tags -->
-    <meta name="twitter:card" content="<%= meta.twitter.card %>">
+    <meta name="twitter:card" content="<%= meta.twitter.card || 'summary_large_image' %>">
     <% if (meta.twitter.site) { %>
     <meta name="twitter:site" content="<%= meta.twitter.site %>">
     <% } %>
-    <meta name="twitter:title" content="<%= meta.twitter.title %>">
-    <meta name="twitter:description" content="<%= meta.twitter.description %>">
+    <meta name="twitter:title" content="<%= meta.twitter.title || meta.title || 'Anonymous Shares' %>">
+    <meta name="twitter:description" content="<%= meta.twitter.description || meta.description || 'Share your thoughts anonymously with the world.' %>">
     
     <!-- Structured Data -->
     <script type="application/ld+json">
-        <%- JSON.stringify(meta.structured) %>
+        <%- JSON.stringify(meta.structured || {}) %>
     </script>
     
     <% } catch (error) { 
-        console.error('Error generating meta tags:', error);
-        // Fallback meta tags
-        const fallbackTitle = siteConfig.siteName;
-        const fallbackDescription = siteConfig.baseDescription;
+        console.error('[Error] Error generating meta tags:', error);
     %>
-        <title><%= fallbackTitle %></title>
-        <meta name="description" content="<%= fallbackDescription %>">
+        <title>Anonymous Shares</title>
+        <meta name="description" content="Share your thoughts anonymously with the world.">
+        <link rel="canonical" href="<%= locals.baseUrl || '' %>">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="Anonymous Shares">
+        <meta property="og:title" content="Anonymous Shares">
+        <meta property="og:description" content="Share your thoughts anonymously with the world.">
+        <meta property="og:locale" content="en_US">
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="Anonymous Shares">
+        <meta name="twitter:description" content="Share your thoughts anonymously with the world.">
     <% } %>
     
     <!-- Tailwind CSS -->

@@ -313,7 +313,7 @@ router.get('/api/search', async (req, res) => {
     }
 });
 
-// Fixed View specific post route
+// GET /:slugId - View specific post
 router.get('/:slugId', async (req, res) => {
     const slugId = req.params.slugId;
     console.log('[Route] GET /:slugId - Viewing post:', slugId);
@@ -326,18 +326,31 @@ router.get('/:slugId', async (req, res) => {
         if (!uuidMatch) {
             console.warn('[Route] Invalid UUID format in URL:', slugId);
             return res.status(404).render('404', {
-                currentPage: '404'
+                currentPage: '404',
+                pageType: '404',
+                pageData: {
+                    title: 'Post Not Found',
+                    description: 'The post you are looking for could not be found.'
+                }
             });
         }
 
         const uuid = uuidMatch[0];
         console.log('[DB] Looking up post with UUID:', uuid);
 
-        const post = await Post.findOne({ uuid });
+        // Fetch the post with select fields
+        const post = await Post.findOne({ uuid })
+            .select('uuid slug content preview views qualityRating createdAt');
+
         if (!post) {
             console.warn('[Route] Post not found:', uuid);
             return res.status(404).render('404', {
-                currentPage: '404'
+                currentPage: '404',
+                pageType: '404',
+                pageData: {
+                    title: 'Post Not Found',
+                    description: 'The post you are looking for could not be found.'
+                }
             });
         }
 
@@ -349,12 +362,19 @@ router.get('/:slugId', async (req, res) => {
         }
 
         // Check for canonical URL
-        const correctUrl = `/${post.slug}-${post.uuid}`;
+        const correctSlug = createSlug(post.content);
+        const correctUrl = `/${correctSlug}-${post.uuid}`;
         if (req.path !== correctUrl) {
             console.log('[Route] Redirecting to canonical URL:', correctUrl);
             return res.redirect(301, correctUrl);
         }
 
+        // Prepare preview if not exists
+        if (!post.preview) {
+            post.preview = post.content.substring(0, 160);
+        }
+
+        // Fetch recent posts excluding current
         console.log('[DB] Fetching recent posts excluding current');
         const recentPosts = await Post.find({
             _id: { $ne: post._id }
@@ -368,16 +388,57 @@ router.get('/:slugId', async (req, res) => {
         post.views += 1;
         await post.save();
 
-        console.log('[Route] Successfully rendered post view');
+        // Calculate reading time
+        const wordsPerMinute = 200;
+        const wordCount = post.content.trim().split(/\s+/).length;
+        const readingTime = Math.ceil(wordCount / wordsPerMinute);
+
+        // Prepare SEO-friendly title and description
+        const postTitle = post.content.substring(0, 60).trim();
+        const postDescription = post.preview || post.content.substring(0, 160).trim();
+
+        console.log('[Route] Successfully preparing post view with SEO data');
         res.render('view', {
             currentPage: 'view',
-            post,
-            recentPosts
+            pageType: 'post',
+            pageData: {
+                content: post.content,
+                slug: post.slug,
+                uuid: post.uuid,
+                createdAt: post.createdAt,
+                views: post.views,
+                qualityRating: post.qualityRating,
+                title: `${postTitle}... | Anonymous Shares`,
+                description: `${postDescription}...`,
+                readingTime,
+                wordCount
+            },
+            post: {
+                ...post.toObject(),
+                readingTime,
+                wordCount
+            },
+            recentPosts,
+            meta: {
+                title: `${postTitle}... | Anonymous Shares`,
+                description: `${postDescription}...`,
+                canonical: `${process.env.BASE_URL || ''}${correctUrl}`,
+                ogType: 'article',
+                publishedTime: post.createdAt,
+                modifiedTime: post.createdAt,
+                author: 'Anonymous'
+            }
         });
+
     } catch (err) {
         console.error('[Error] Post view error:', err);
         res.status(500).render('error', {
-            currentPage: 'error'
+            currentPage: 'error',
+            pageType: 'error',
+            pageData: {
+                title: 'Error Viewing Post',
+                description: 'An error occurred while trying to view this post.'
+            }
         });
     }
 });
