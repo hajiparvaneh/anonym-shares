@@ -1,17 +1,17 @@
+// server.js
 const express = require('express');
 const bodyParser = require('body-parser');
 const connectDB = require('./config/db');
 const postRoutes = require('./routes/posts');
 const seoRoutes = require('./routes/seo-routes');
 const expressLayouts = require('express-ejs-layouts');
-const createRateLimiter = require('./middleware/rateLimiter');
-const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 const path = require('path');
 const generateMetaTags = require('./utils/seo');
 const configureExpress = require('./config/express');
 const wwwRedirect = require('./middleware/wwwRedirect');
+const { applySecurityMiddleware, validateContent } = require('./middleware/security');
 
 const app = express();
 
@@ -21,34 +21,20 @@ connectDB();
 // Configure Express (includes view engine setup and locals)
 configureExpress(app);
 
-// Security middleware
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'"],
-            fontSrc: ["'self'", "https://cdn.jsdelivr.net"],
-            objectSrc: ["'none'"],
-            mediaSrc: ["'none'"],
-            frameSrc: ["'none'"],
-        }
-    },
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
+// Add www redirect before other middleware
+app.use(wwwRedirect());
+
+// Apply comprehensive security middleware (includes helmet, rate limiting, etc.)
+applySecurityMiddleware(app);
 
 // Logging configuration
 if (process.env.NODE_ENV === 'production') {
-    app.use(morgan('[:date[iso]] ":method :url" :status :response-time ms - :res[content-length]'));
+    app.use(morgan('[:date[iso]] ":method :url" :status :response-time ms - :res[content-length]', {
+        skip: (req) => req.path === '/health'
+    }));
 } else {
     app.use(morgan('dev'));
 }
-
-// Add before other middleware
-app.use(wwwRedirect());
 
 // View engine setup
 app.use(expressLayouts);
@@ -63,12 +49,13 @@ app.use(compression({
         }
         return compression.filter(req, res);
     },
-    level: 6
+    level: 6,
+    threshold: 1024 // only compress responses above 1KB
 }));
 
-// Body parser middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Body parser middleware with limits
+app.use(bodyParser.json({ limit: '10kb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10kb' }));
 
 // Cache control middleware
 const cacheControl = (req, res, next) => {
@@ -98,7 +85,7 @@ const cacheControl = (req, res, next) => {
 
     // Default cache for dynamic pages
     if (req.method === 'GET') {
-        res.set('Cache-Control', 'public, max-age=5'); // 5 secounds
+        res.set('Cache-Control', 'public, max-age=5'); // 5 seconds
     } else {
         res.set('Cache-Control', 'no-store');
     }
@@ -115,15 +102,8 @@ app.use(express.static('public', {
     lastModified: true
 }));
 
-// Create rate limiters
-const apiLimiter = createRateLimiter(
-    parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 600000,
-    parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 150
-);
-
-// Apply rate limiting to specific routes
-app.use('/share', apiLimiter);
-app.use('/api/search', apiLimiter);
+// Content validation for post submissions
+app.use('/share', validateContent);
 
 // Routes
 app.use('/', seoRoutes);  // SEO routes
@@ -152,9 +132,15 @@ app.use((req, res) => {
     });
 });
 
-// Error handler
+// Error handler with privacy focus
 app.use((err, req, res, next) => {
-    console.error(err);
+    // Log error without sensitive data
+    console.error('[Error]', {
+        message: err.message,
+        path: req.path,
+        method: req.method,
+        timestamp: new Date().toISOString()
+    });
     
     res.status(500).render('error', {
         currentPage: 'error',
@@ -171,8 +157,8 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Create HTTP server
-const PORT = 3000;
+// Create HTTP server with enhanced security
+const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);
@@ -186,6 +172,23 @@ process.on('SIGTERM', () => {
         console.log('Server closed. Exiting process.');
         process.exit(0);
     });
+});
+
+// Handle uncaught errors
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    // Give time for pending requests to complete
+    setTimeout(() => {
+        process.exit(1);
+    }, 1000);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Give time for pending requests to complete
+    setTimeout(() => {
+        process.exit(1);
+    }, 1000);
 });
 
 module.exports = server;
