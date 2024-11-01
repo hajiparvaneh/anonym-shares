@@ -30,9 +30,27 @@
 <body class="bg-gray-50 min-h-screen flex flex-col">
     <%- include('../partials/header', { currentPage: locals.currentPage || '' }) %>
     
-    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl">
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl relative">
         <%- body %>
+        <!-- Floating Action Button -->
+        <a href="/" 
+        class="absolute bottom-0 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-50"
+        aria-label="Create new post">
+            <!-- Plus Icon using SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" 
+                class="h-6 w-6" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor">
+                <path stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M12 4v16m8-8H4" />
+            </svg>
+        </a>
     </main>
+
+    
 
     <%- include('../partials/footer') %>
     <%- defineContent('scripts') %>
