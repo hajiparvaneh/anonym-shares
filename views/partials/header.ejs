@@ -3,7 +3,7 @@
         <nav aria-label="Main navigation" class="flex justify-between items-center">
             <ul class="flex space-x-6 items-center">
                 <li>
-                    <a href="/" title="Anonym Shares homepage" >
+                    <a href="/" title="Anonym Shares homepage">
                         <span class="text-xl font-bold text-gray-900 space-x-2 flex items-center">AnonymShares.com</span>
                     </a>
                 </li>
@@ -30,11 +30,12 @@
             </ul>
 
             <!-- Search Form -->
-            <form onsubmit="handleHeaderSearch(event)" class="flex w-64" role="search">
+            <form id="header-search-form" class="flex w-64" role="search">
                 <label for="header-search" class="sr-only">Search thoughts</label>
                 <input 
                     type="search"
                     id="header-search"
+                    name="query"
                     placeholder="Search thoughts..."
                     class="w-full rounded-l-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                     value="<%= locals.search || '' %>"
@@ -53,12 +54,18 @@
 </div>
 
 <script>
-function handleHeaderSearch(event) {
-    event.preventDefault();
-    const searchInput = document.getElementById('header-search');
-    const searchQuery = searchInput.value.trim();
-    if (searchQuery) {
-        window.location.href = `/search/${encodeURIComponent(searchQuery)}`;
-    }
-}
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchForm = document.getElementById('header-search-form');
+        const searchInput = document.getElementById('header-search');
+
+        if (searchForm) {
+            searchForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const searchQuery = searchInput.value.trim();
+                if (searchQuery) {
+                    window.location.href = `/search/${encodeURIComponent(searchQuery)}`;
+                }
+            });
+        }
+    });
 </script>
