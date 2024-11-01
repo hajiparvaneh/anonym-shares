@@ -19,7 +19,7 @@ function createSlug(text) {
     return slug;
 }
 
-// Home page
+// Home page route
 router.get('/', async (req, res) => {
     console.log('[Route] GET / - Accessing home page');
     try {
@@ -32,13 +32,33 @@ router.get('/', async (req, res) => {
         console.log('[Route] Found recent posts:', recentPosts.length);
         res.render('home', {
             currentPage: 'home',
-            recentPosts
+            pageType: 'home',
+            pageData: {
+                title: 'Anonymous Shares - Share Your Thoughts Anonymously',
+                description: 'Share your thoughts, stories, and ideas anonymously with the world. A safe space for expression without identity.',
+                recentPostsCount: recentPosts.length
+            },
+            recentPosts,
+            meta: {
+                canonical: `${process.env.BASE_URL || ''}/`,
+                ogType: 'website'
+            }
         });
     } catch (err) {
         console.error('[Error] Home page error:', err);
         res.render('home', {
             currentPage: 'home',
-            recentPosts: []
+            pageType: 'home',
+            pageData: {
+                title: 'Anonymous Shares - Share Your Thoughts Anonymously',
+                description: 'Share your thoughts, stories, and ideas anonymously with the world.',
+                recentPostsCount: 0
+            },
+            recentPosts: [],
+            meta: {
+                canonical: `${process.env.BASE_URL || ''}/`,
+                ogType: 'website'
+            }
         });
     }
 });
@@ -201,6 +221,24 @@ router.get('/search/:query?', async (req, res) => {
         console.log('[Route] Rendering search results with posts:', posts.length);
         res.render('search', {
             currentPage: 'search',
+            pageType: 'search',  // Add this for SEO
+            pageData: {          // Add this for SEO
+                query: searchQuery,
+                page: page,
+                total: total,
+                title: searchQuery ? 
+                    `Search Results for "${searchQuery}"` : 
+                    'Search Anonymous Thoughts',
+                description: searchQuery ?
+                    `Browse search results for "${searchQuery}". Found ${total} anonymous thoughts and stories.` :
+                    'Search through anonymous thoughts and stories shared by people worldwide.',
+                pagination: {
+                    current: page,
+                    total: totalPages,
+                    prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
+                    nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null
+                }
+            },
             search: searchQuery,
             posts,
             total,
@@ -215,12 +253,17 @@ router.get('/search/:query?', async (req, res) => {
         console.error('[Error] Search error:', err);
         res.status(500).render('error', {
             currentPage: 'error',
-            error: 'Error searching posts'
+            pageType: 'error',
+            pageData: {
+                title: 'Search Error',
+                description: 'An error occurred while searching posts.'
+            }
         });
     }
 });
 
-// Browse posts with section (latest/popular)
+
+// Browse/List route
 router.get('/browse/:section?', async (req, res) => {
     const section = req.params.section || 'latest';
     const search = req.query.q || '';
@@ -233,7 +276,6 @@ router.get('/browse/:section?', async (req, res) => {
         limit
     });
 
-    // Redirect to search route if search query is present
     if (search) {
         console.log('[Route] Redirecting to search route with query:', search);
         return res.redirect(`/search/${encodeURIComponent(search)}`);
@@ -251,12 +293,6 @@ router.get('/browse/:section?', async (req, res) => {
             return res.redirect('/browse/latest');
         }
 
-        console.log('[DB] Executing posts query with parameters:', {
-            sort: sortQuery,
-            page,
-            limit
-        });
-
         const posts = await Post.find()
             .sort(sortQuery)
             .skip((page - 1) * limit)
@@ -264,14 +300,27 @@ router.get('/browse/:section?', async (req, res) => {
             .select('slug uuid content preview createdAt views qualityRating');
 
         const total = await Post.countDocuments();
-        console.log('[Route] Found total posts:', total);
-
         const totalPages = Math.ceil(total / limit);
         const baseUrl = `/browse/${section}`;
+
+        // Prepare SEO title and description
+        const sectionTitle = section === 'popular' ? 'Most Popular' : 'Latest';
+        const pageTitle = page > 1 ? ` | Page ${page}` : '';
+        const title = `${sectionTitle} Anonymous Thoughts${pageTitle}`;
+        const description = `Browse ${section === 'popular' ? 'popular' : 'recent'} anonymous thoughts and stories. Page ${page} of ${totalPages}.`;
 
         console.log('[Route] Rendering list view with posts:', posts.length);
         res.render('list', {
             currentPage: 'browse',
+            pageType: 'browse',
+            pageData: {
+                title,
+                description,
+                section,
+                total,
+                currentPage: page,
+                totalPages
+            },
             section,
             search: '',
             posts,
@@ -280,13 +329,22 @@ router.get('/browse/:section?', async (req, res) => {
                 total: totalPages,
                 prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
                 nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null
+            },
+            meta: {
+                canonical: `${process.env.BASE_URL || ''}${baseUrl}${page > 1 ? `?page=${page}` : ''}`,
+                ogType: 'website',
+                robots: 'index, follow'
             }
         });
     } catch (err) {
         console.error('[Error] Posts listing error:', err);
         res.status(500).render('error', {
             currentPage: 'error',
-            error: 'Error loading posts'
+            pageType: 'error',
+            pageData: {
+                title: 'Error Loading Posts',
+                description: 'An error occurred while loading the posts.'
+            }
         });
     }
 });
