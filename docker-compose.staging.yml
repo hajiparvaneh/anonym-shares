@@ -41,7 +41,7 @@ services:
       MONGO_INITDB_DATABASE: ${DB_NAME:-anonymous-sharing-staging}
     healthcheck:
       test: ["CMD", "mongosh", "-u", "${MONGO_USER}", "-p", "${MONGO_PASSWORD}", "--eval", "'db.runCommand(\"ping\").ok'"]
-      interval: 10s
+      interval: 1000s
       timeout: 5s
       retries: 3
     networks:
