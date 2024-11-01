@@ -183,6 +183,65 @@ const generateMetaTags = (type, data = {}) => {
                 }
             }
             break;
+            case 'search':
+                const searchQuery = data.query || '';
+                const searchPage = data.page || 1;
+                const isFirstPage_s = searchPage === 1;
+                const totalResults = data.total || 0;
+                
+                // Prepare title and description
+                meta.title = searchQuery ? 
+                    `Search Results for "${truncateText(searchQuery, 50)}"${!isFirstPage_s ? ` | Page ${searchPage}` : ''} | ${SEO_CONFIG.siteName}` :
+                    `Search Anonymous Thoughts | ${SEO_CONFIG.siteName}`;
+                
+                meta.description = searchQuery ?
+                    `Browse search results for "${truncateText(searchQuery, 50)}". Found ${totalResults} anonymous thoughts and stories.` :
+                    'Search through anonymous thoughts and stories shared by people worldwide.';
+                
+                meta.canonical = `${SEO_CONFIG.baseUrl}/search/${encodeURIComponent(searchQuery)}${!isFirstPage_s ? `?page=${searchPage}` : ''}`;
+
+                // SearchResultsPage structured data
+                meta.structured.push({
+                    '@context': 'https://schema.org',
+                    '@type': 'SearchResultsPage',
+                    name: meta.title,
+                    description: meta.description,
+                    url: meta.canonical,
+                    mainEntity: {
+                        '@type': 'ItemList',
+                        numberOfItems: totalResults,
+                        itemListOrder: 'https://schema.org/ItemListOrderDescending',
+                        url: meta.canonical
+                    },
+                    isPartOf: {
+                        '@type': 'WebSite',
+                        name: SEO_CONFIG.siteName,
+                        url: SEO_CONFIG.baseUrl
+                    }
+                });
+
+                // Add breadcrumbs
+                meta.structured.push(generateBreadcrumbs([
+                    { name: 'Home', path: '/' },
+                    { name: 'Search', path: '/search' },
+                    ...(searchQuery ? [{ name: `Results for "${truncateText(searchQuery, 30)}"`, path: `/search/${searchQuery}` }] : [])
+                ]));
+
+                // Add pagination meta tags
+                if (data.pagination) {
+                    if (data.pagination.prevUrl) {
+                        meta.links.push({ rel: 'prev', href: data.pagination.prevUrl });
+                    }
+                    if (data.pagination.nextUrl) {
+                        meta.links.push({ rel: 'next', href: data.pagination.nextUrl });
+                    }
+                }
+
+                // Add noindex for search results to prevent search engine indexing
+                meta.meta.push(
+                    { name: 'robots', content: 'noindex, follow' }
+                );
+            break;
     }
 
     // Common OpenGraph tags

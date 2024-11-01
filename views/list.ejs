@@ -10,7 +10,7 @@
         <select 
             id="sortSelect"
             class="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            onchange="window.location.href=`/browse/${this.value}`"
+            data-current-section="<%= section %>"
         >
             <option value="latest" <%= section === 'latest' ? 'selected' : '' %>>Latest</option>
             <option value="popular" <%= section === 'popular' ? 'selected' : '' %>>Most Viewed</option>
@@ -64,3 +64,15 @@
         </div>
     </nav>
 <% } %>
+
+<%- contentFor('scripts') %>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const sortSelect = document.getElementById('sortSelect');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', function() {
+                window.location.href = `/browse/${this.value}`;
+            });
+        }
+    });
+</script>
