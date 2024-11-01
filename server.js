@@ -94,7 +94,7 @@ const cacheControl = (req, res, next) => {
 
     // Default cache for dynamic pages
     if (req.method === 'GET') {
-        res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
+        res.set('Cache-Control', 'public, max-age=5'); // 5 secounds
     } else {
         res.set('Cache-Control', 'no-store');
     }
@@ -124,8 +124,6 @@ app.use('/api/search', apiLimiter);
 // Routes
 app.use('/', seoRoutes);  // SEO routes
 app.use('/', postRoutes); // Post routes
-
-app.locals.generateMetaTags = generateMetaTags;
 
 // Health check endpoint
 app.get('/health', (req, res) => {
