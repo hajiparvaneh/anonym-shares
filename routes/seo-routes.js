@@ -33,7 +33,7 @@ Host: www.anonymshares.com
 Crawl-delay: 5
 
 # Sitemaps
-Sitemap: ${baseUrl}/sitemap.xml
+Sitemap: ${baseUrl}/sitemap_index.xml
 `.trim();
     } else {
         // More restrictive for non-production environments
@@ -49,12 +49,46 @@ Disallow: /
     res.send(robotsTxt);
 });
 
-// Sitemap route with caching
-router.get('/sitemap.xml', async (req, res) => {
+// Sitemap index route
+router.get('/sitemap_index.xml', async (req, res) => {
     try {
+        const baseUrl = process.env.BASE_URL || `https://${req.get('host')}`;
+        let sitemapIndex = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        sitemapIndex += '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+
+        // Generate individual sitemap links (e.g., sitemap-1.xml, sitemap-2.xml)
+        const postsCount = await Post.countDocuments();
+        const sitemapSize = 50000; // Limit each sitemap to 50,000 URLs
+        const totalSitemaps = Math.ceil(postsCount / sitemapSize);
+
+        for (let i = 1; i <= totalSitemaps; i++) {
+            sitemapIndex += `  <sitemap>\n`;
+            sitemapIndex += `    <loc>${baseUrl}/sitemap-${i}.xml</loc>\n`;
+            sitemapIndex += `    <lastmod>${new Date().toISOString()}</lastmod>\n`;
+            sitemapIndex += `  </sitemap>\n`;
+        }
+
+        sitemapIndex += '</sitemapindex>';
+
+        res.header('Content-Type', 'application/xml');
+        res.send(sitemapIndex);
+    } catch (err) {
+        console.error('[Error] Sitemap index generation error:', err);
+        res.status(500).send('Error generating sitemap index');
+    }
+});
+
+// Individual sitemap routes with caching
+router.get('/sitemap-:index.xml', async (req, res) => {
+    try {
+        const index = parseInt(req.params.index, 10);
+        if (isNaN(index) || index < 1) {
+            return res.status(400).send('Invalid sitemap index');
+        }
+
         // Check cache (valid for 1 hour)
         const cacheAge = sitemapCache.lastUpdated ? Date.now() - sitemapCache.lastUpdated : Infinity;
-        if (sitemapCache.content && cacheAge < 3600000) {
+        if (sitemapCache.content && sitemapCache.index === index && cacheAge < 3600000) {
             res.header('Content-Type', 'application/xml');
             return res.send(sitemapCache.content);
         }
@@ -63,24 +97,12 @@ router.get('/sitemap.xml', async (req, res) => {
         let sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
         sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
-        // Add static pages
-        const staticPages = [
-            { url: '/', priority: '1.0', changefreq: 'hourly' },
-            { url: '/browse/latest', priority: '0.9', changefreq: 'hourly' },
-            { url: '/browse/popular', priority: '0.8', changefreq: 'daily' }
-        ];
-
-        staticPages.forEach(page => {
-            sitemap += `  <url>\n`;
-            sitemap += `    <loc>${baseUrl}${page.url}</loc>\n`;
-            sitemap += `    <changefreq>${page.changefreq}</changefreq>\n`;
-            sitemap += `    <priority>${page.priority}</priority>\n`;
-            sitemap += `  </url>\n`;
-        });
-
-        // Add posts
+        // Fetch posts in batches based on the sitemap index
+        const sitemapSize = 50000;
         const posts = await Post.find()
             .sort({ createdAt: -1 })
+            .skip((index - 1) * sitemapSize)
+            .limit(sitemapSize)
             .select('slug uuid createdAt views')
             .lean();
 
@@ -108,7 +130,8 @@ router.get('/sitemap.xml', async (req, res) => {
         // Update cache
         sitemapCache = {
             content: sitemap,
-            lastUpdated: Date.now()
+            lastUpdated: Date.now(),
+            index
         };
 
         res.header('Content-Type', 'application/xml');
