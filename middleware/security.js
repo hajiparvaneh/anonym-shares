@@ -40,7 +40,7 @@ const createRateLimiters = () => {
                 return req.path.match(/\.(css|js|jpg|png|gif|ico)$/) ||
                        req.path === '/health' ||
                        req.path === '/robots.txt' ||
-                       req.path === '/sitemap.xml';
+                       req.path.startsWith('/sitemap');
             }
         }),
 
@@ -81,6 +81,7 @@ const createRateLimiters = () => {
         })
     };
 };
+
 
 // Content validation middleware
 const validateContent = (req, res, next) => {

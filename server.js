@@ -71,8 +71,8 @@ const cacheControl = (req, res, next) => {
         return next();
     }
 
-    // Cache sitemap.xml
-    if (req.path === '/sitemap.xml') {
+    // Cache sitemap index and individual sitemaps
+    if (req.path === '/sitemap_index.xml' || req.path.startsWith('/sitemap-')) {
         res.set('Cache-Control', 'public, max-age=3600'); // 1 hour
         return next();
     }
@@ -89,7 +89,7 @@ const cacheControl = (req, res, next) => {
     } else {
         res.set('Cache-Control', 'no-store');
     }
-    
+
     next();
 };
 
