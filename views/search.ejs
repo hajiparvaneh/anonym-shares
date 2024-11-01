@@ -1,0 +1,130 @@
+<%- contentFor('body') %>
+
+<div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900">
+            Search Results
+        </h1>
+        <% if (search) { %>
+            <p class="mt-2 text-gray-600">
+                Showing results for "<span class="font-medium"><%= search %></span>"
+            </p>
+        <% } %>
+    </div>
+    
+    <!-- Search Form -->
+    <form onsubmit="handleSearch(event)" class="flex" role="search">
+        <div class="relative flex-grow">
+            <label for="search" class="sr-only">Search thoughts</label>
+            <input 
+                type="search"
+                id="search"
+                name="q"
+                value="<%= search %>"
+                placeholder="Search thoughts..."
+                class="w-full rounded-l-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                autofocus
+            >
+        </div>
+        <button 
+            type="submit"
+            class="bg-blue-600 text-white px-4 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+            </svg>
+        </button>
+    </form>
+</div>
+
+<!-- Advanced Search Options (can be expanded in the future) -->
+<div class="mb-6">
+    <div class="flex items-center space-x-4 text-sm">
+        <a 
+            href="/browse/latest" 
+            class="text-gray-600 hover:text-blue-600 flex items-center space-x-1"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.707-10.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L9.414 11H13a1 1 0 100-2H9.414l1.293-1.293z" clip-rule="evenodd"/>
+            </svg>
+            <span>Back to latest thoughts</span>
+        </a>
+        <% if (posts.length > 0) { %>
+            <span class="text-gray-400">|</span>
+            <span class="text-gray-600">
+                Found <%= total %> result<%= total === 1 ? '' : 's' %>
+            </span>
+        <% } %>
+    </div>
+</div>
+
+<!-- Search Results -->
+<div class="space-y-6" role="feed" aria-label="Search results">
+    <% if (posts.length === 0) { %>
+        <div class="bg-white rounded-lg shadow-sm p-8 text-center">
+            <div class="mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <p class="text-gray-600 mb-4">
+                No thoughts found matching "<span class="font-medium"><%= search %></span>".
+            </p>
+            <div class="space-y-2">
+                <p class="text-sm text-gray-500">Try:</p>
+                <ul class="text-sm text-gray-500">
+                    <li>• Using different keywords</li>
+                    <li>• Using fewer words</li>
+                    <li>• Checking for typos</li>
+                </ul>
+            </div>
+            <a href="/browse/latest" class="mt-6 inline-block text-blue-600 hover:text-blue-800">
+                View all thoughts
+            </a>
+        </div>
+    <% } else { %>
+        <% posts.forEach(post => { %>
+            <%- include('partials/post-preview-full', { post }) %>
+        <% }); %>
+    <% } %>
+</div>
+
+<!-- Pagination -->
+<% if (pagination.total > 1) { %>
+    <nav class="mt-8" aria-label="Pagination">
+        <div class="flex justify-center items-center space-x-4">
+            <% if (pagination.prevUrl) { %>
+                <a 
+                    href="<%= pagination.prevUrl %>"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                    Previous
+                </a>
+            <% } %>
+            
+            <span class="text-sm text-gray-700">
+                Page <%= pagination.current %> of <%= pagination.total %>
+            </span>
+            
+            <% if (pagination.nextUrl) { %>
+                <a 
+                    href="<%= pagination.nextUrl %>"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                    Next
+                </a>
+            <% } %>
+        </div>
+    </nav>
+<% } %>
+
+<script>
+function handleSearch(event) {
+    event.preventDefault();
+    const searchInput = document.getElementById('search');
+    const searchQuery = searchInput.value.trim();
+    if (searchQuery) {
+        window.location.href = `/search/${encodeURIComponent(searchQuery)}`;
+    }
+}
+</script>

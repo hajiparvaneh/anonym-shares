@@ -167,7 +167,7 @@ function rateContentQuality(content) {
     return finalScore;
 }
 
-// Move the search route before the slugId route to prevent conflicts
+// Search route
 router.get('/search/:query?', async (req, res) => {
     const searchQuery = req.params.query || '';
     const page = parseInt(req.query.page) || 1;
@@ -181,17 +181,10 @@ router.get('/search/:query?', async (req, res) => {
     try {
         let query = {};
         if (searchQuery) {
-            // Decode the URL-encoded search query
             const decodedQuery = decodeURIComponent(searchQuery);
             query.content = { $regex: decodedQuery, $options: 'i' };
             console.log('[DB] Search query:', query);
         }
-
-        console.log('[DB] Executing search query with parameters:', {
-            query,
-            page,
-            limit
-        });
 
         const posts = await Post.find(query)
             .sort({ createdAt: -1 })
@@ -206,10 +199,11 @@ router.get('/search/:query?', async (req, res) => {
         const baseUrl = `/search/${searchQuery}`;
 
         console.log('[Route] Rendering search results with posts:', posts.length);
-        res.render('list', {
-            section: 'search',
+        res.render('search', {
+            currentPage: 'search',
             search: searchQuery,
             posts,
+            total,
             pagination: {
                 current: page,
                 total: totalPages,
