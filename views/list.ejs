@@ -5,40 +5,16 @@
         <%= section === 'popular' ? 'Popular Thoughts' : 'Recent Thoughts' %>
     </h1>
     
-    <div class="flex flex-col sm:flex-row gap-4 sm:items-center">
-        <!-- Search Form - Updated path to /browse -->
-        <form action="/browse/<%= section %>" method="GET" class="flex" role="search">
-            <label for="search" class="sr-only">Search thoughts</label>
-            <input 
-                type="search"
-                id="search"
-                name="q"
-                value="<%= search %>"
-                placeholder="Search thoughts..."
-                class="rounded-l-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-            <button 
-                type="submit"
-                class="bg-blue-600 text-white px-4 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-                </svg>
-            </button>
-        </form>
-
-        <!-- Sort Dropdown - Updated path to /browse -->
-        <div class="flex items-center space-x-2">
-            <label for="sortSelect" class="text-gray-600">Sort by:</label>
-            <select 
-                id="sortSelect"
-                class="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                onchange="window.location.href=`/browse/${this.value}${window.location.search}`"
-            >
-                <option value="latest" <%= section === 'latest' ? 'selected' : '' %>>Latest</option>
-                <option value="popular" <%= section === 'popular' ? 'selected' : '' %>>Most Viewed</option>
-            </select>
-        </div>
+    <div class="flex items-center space-x-2">
+        <label for="sortSelect" class="text-gray-600">Sort by:</label>
+        <select 
+            id="sortSelect"
+            class="rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            onchange="window.location.href=`/browse/${this.value}`"
+        >
+            <option value="latest" <%= section === 'latest' ? 'selected' : '' %>>Latest</option>
+            <option value="popular" <%= section === 'popular' ? 'selected' : '' %>>Most Viewed</option>
+        </select>
     </div>
 </div>
 
@@ -47,8 +23,11 @@
     <% if (posts.length === 0) { %>
         <div class="bg-white rounded-lg shadow-sm p-8 text-center">
             <p class="text-gray-600">
-                <%= search ? 'No thoughts found matching your search.' : 'No thoughts shared yet. Be the first to share!' %>
+                No thoughts shared yet. Be the first to share!
             </p>
+            <a href="/" class="mt-4 inline-block text-blue-600 hover:text-blue-800">
+                Share a thought
+            </a>
         </div>
     <% } else { %>
         <% posts.forEach(post => { %>

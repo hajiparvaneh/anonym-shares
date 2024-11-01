@@ -1,7 +1,7 @@
 <div class="bg-white shadow-sm">
     <div class="container mx-auto px-4 py-4 max-w-4xl">
-        <nav aria-label="Main navigation">
-            <ul class="flex space-x-6">
+        <nav aria-label="Main navigation" class="flex justify-between items-center">
+            <ul class="flex space-x-6 items-center">
                 <li>
                     <span class="text-xl font-bold text-gray-900 space-x-2 flex items-center">AnonymShares.com</span> 
                 </li>
@@ -26,6 +26,37 @@
                     </a>
                 </li>
             </ul>
+
+            <!-- Search Form -->
+            <form onsubmit="handleHeaderSearch(event)" class="flex w-64" role="search">
+                <label for="header-search" class="sr-only">Search thoughts</label>
+                <input 
+                    type="search"
+                    id="header-search"
+                    placeholder="Search thoughts..."
+                    class="w-full rounded-l-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
+                    value="<%= locals.search || '' %>"
+                >
+                <button 
+                    type="submit"
+                    class="bg-blue-600 text-white px-3 rounded-r-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </form>
         </nav>
     </div>
 </div>
+
+<script>
+function handleHeaderSearch(event) {
+    event.preventDefault();
+    const searchInput = document.getElementById('header-search');
+    const searchQuery = searchInput.value.trim();
+    if (searchQuery) {
+        window.location.href = `/search/${encodeURIComponent(searchQuery)}`;
+    }
+}
+</script>
