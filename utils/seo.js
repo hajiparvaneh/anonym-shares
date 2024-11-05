@@ -159,9 +159,102 @@ const generateMetaTags = (type, data = {}) => {
 
     // Process by page type
     switch (type) {
-        case 'home':
-            meta.structured.push(generateWebsiteSchema());
-            break;
+        case 'home': {
+            const baseTitle = 'Anonymous Shares - Share Your Thoughts Anonymously';
+            const baseDescription = 'Share your thoughts, stories, and ideas anonymously with the world. A safe space for expression without identity.';
+
+            // Add basic meta tags
+            meta.basic.push(
+                { charset: 'utf-8' },
+                { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
+                { name: 'robots', content: 'index, follow' },
+                { name: 'description', content: baseDescription },
+                { name: 'language', content: 'en' }
+            );
+
+            // Add statistics if available
+            if (data.stats) {
+                meta.custom.push(
+                    { name: 'total-posts', content: data.stats.posts },
+                    { name: 'total-views', content: data.stats.views }
+                );
+            }
+
+            // Add Open Graph tags
+            meta.opengraph.push(
+                { property: 'og:title', content: baseTitle },
+                { property: 'og:description', content: baseDescription },
+                { property: 'og:url', content: SEO_CONFIG.site.baseUrl },
+                { property: 'og:type', content: 'website' },
+                { property: 'og:site_name', content: SEO_CONFIG.site.name },
+                { property: 'og:image', content: SEO_CONFIG.branding.defaultImage.url },
+                { property: 'og:image:width', content: SEO_CONFIG.branding.defaultImage.width },
+                { property: 'og:image:height', content: SEO_CONFIG.branding.defaultImage.height }
+            );
+
+            // Add Twitter Card tags
+            meta.twitter.push(
+                { name: 'twitter:card', content: 'summary_large_image' },
+                { name: 'twitter:title', content: baseTitle },
+                { name: 'twitter:description', content: baseDescription },
+                { name: 'twitter:image', content: SEO_CONFIG.branding.defaultImage.url }
+            );
+
+            // Add Website structured data
+            meta.structured.push({
+                '@context': 'https://schema.org',
+                '@type': 'WebSite',
+                name: SEO_CONFIG.site.name,
+                description: baseDescription,
+                url: SEO_CONFIG.site.baseUrl,
+                potentialAction: {
+                    '@type': 'SearchAction',
+                    target: {
+                        '@type': 'EntryPoint',
+                        urlTemplate: `${SEO_CONFIG.site.baseUrl}/search/{search_term_string}`
+                    },
+                    'query-input': 'required name=search_term_string'
+                }
+            });
+
+            // Add Organization structured data
+            meta.structured.push({
+                '@context': 'https://schema.org',
+                '@type': 'Organization',
+                name: SEO_CONFIG.site.name,
+                url: SEO_CONFIG.site.baseUrl,
+                logo: {
+                    '@type': 'ImageObject',
+                    url: `${SEO_CONFIG.site.baseUrl}${SEO_CONFIG.branding.logo.url}`,
+                    width: SEO_CONFIG.branding.logo.width,
+                    height: SEO_CONFIG.branding.logo.height
+                },
+                sameAs: [
+                    'https://twitter.com/anonymshares',
+                    // Add other social media links here
+                ]
+            });
+
+            // Add breadcrumbs structured data for home page
+            meta.structured.push(
+                generateBreadcrumbs([
+                    { name: 'Home', path: '/' }
+                ])
+            );
+
+            return {
+                title: baseTitle,
+                meta: {
+                    basic: meta.basic,
+                    opengraph: meta.opengraph,
+                    twitter: meta.twitter,
+                    custom: meta.custom
+                },
+                links: meta.links,
+                structured: meta.structured,
+                canonical: SEO_CONFIG.site.baseUrl
+            };
+        }
 
         case 'post': {
             if (!data.post) throw new Error('Post data required for post type');

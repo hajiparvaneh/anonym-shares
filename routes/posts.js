@@ -30,20 +30,37 @@ router.get('/', async (req, res) => {
             .limit(5)
             .select('slug uuid content preview createdAt views qualityRating');
 
+        // Get some stats for the homepage
+        const totalPosts = await Post.countDocuments();
+        const totalViews = await Post.aggregate([
+            { $group: { _id: null, total: { $sum: "$views" } } }
+        ]);
+        const stats = {
+            posts: totalPosts,
+            views: totalViews[0]?.total || 0
+        };
+
         console.log('[Route] Found recent posts:', recentPosts.length);
+
+        // Generate meta tags for home page
+        const meta = generateMetaTags('home', {
+            stats,
+            recentPostsCount: recentPosts.length,
+            url: '/',
+            // You can add more dynamic data here if needed
+        });
+
         res.render('home', {
             currentPage: 'home',
             pageType: 'home',
             pageData: {
                 title: 'Anonymous Shares - Share Your Thoughts Anonymously',
                 description: 'Share your thoughts, stories, and ideas anonymously with the world. A safe space for expression without identity.',
-                recentPostsCount: recentPosts.length
+                recentPostsCount: recentPosts.length,
+                stats
             },
             recentPosts,
-            meta: {
-                canonical: `${process.env.BASE_URL || ''}/`,
-                ogType: 'website'
-            }
+            meta  // Add meta object to the template
         });
     } catch (err) {
         console.error('[Error] Home page error:', err);
@@ -56,10 +73,10 @@ router.get('/', async (req, res) => {
                 recentPostsCount: 0
             },
             recentPosts: [],
-            meta: {
-                canonical: `${process.env.BASE_URL || ''}/`,
-                ogType: 'website'
-            }
+            meta: generateMetaTags('home', {
+                error: true,
+                url: '/'
+            })
         });
     }
 });
