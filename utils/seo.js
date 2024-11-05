@@ -1,192 +1,340 @@
 // utils/seo.js
-const slugify = require('slugify');
-const striptags = require('striptags');
 
-// Enhanced SEO Configuration
+/**
+ * Enhanced SEO Configuration and Meta Tag Generator
+ * Handles all types of pages with proper meta tags, structured data, and social sharing
+ */
+
 const SEO_CONFIG = {
-    siteName: 'Anonymous Shares',
-    baseTitle: 'Share Your Thoughts Anonymously',
-    baseDescription: 'Share your thoughts, stories, and ideas anonymously with the world. A safe space for expression without identity.',
-    baseUrl: process.env.BASE_URL || 'http://localhost:3000',
-    twitter: {
-        card: 'summary_large_image',
-        site: '@yourtwitterhandle',
-        creator: '@yourtwitterhandle'
+    site: {
+        name: 'Anonymous Shares',
+        baseTitle: 'Share Your Thoughts Anonymously',
+        baseDescription: 'Share your thoughts, stories, and ideas anonymously with the world. A safe space for expression without identity.',
+        baseUrl: process.env.BASE_URL || 'http://localhost:3000',
+        language: 'en',
+        defaultLocale: 'en_US'
     },
-    openGraph: {
-        type: 'website',
-        locale: 'en_US',
-        image: '/images/default-share.png', // Default sharing image
-        imageType: 'image/png',
-        imageWidth: '1200',
-        imageHeight: '630'
+    branding: {
+        logo: {
+            url: '/images/logo.png',
+            width: 190,
+            height: 60
+        },
+        defaultImage: {
+            url: '/images/default-share.png',
+            width: 1200,
+            height: 630,
+            type: 'image/png'
+        }
     },
-    alternateLanguages: [
-        { lang: 'en', url: 'https://anonymshares.com' }
-        // Add more languages if needed
-    ],
-    logo: {
-        url: '/images/logo.png',
-        width: 190,
-        height: 60
+    social: {
+        twitter: {
+            card: 'summary_large_image',
+            site: '@anonymshares',
+            creator: '@anonymshares'
+        },
+        facebook: {
+            appId: process.env.FACEBOOK_APP_ID
+        }
     },
-    defaultImage: {
-        url: '/images/default-share.png',
-        width: 1200,
-        height: 630
+    seo: {
+        maxTitleLength: 60,
+        maxDescriptionLength: 160,
+        maxKeywordsLength: 10,
+        robots: {
+            default: 'index, follow',
+            search: 'noindex, follow',
+            admin: 'noindex, nofollow'
+        }
+    },
+    schema: {
+        organization: {
+            '@type': 'Organization',
+            name: 'Anonymous Shares',
+            url: process.env.BASE_URL || 'http://localhost:3000',
+            logo: {
+                '@type': 'ImageObject',
+                url: '/images/logo.png',
+                width: '190',
+                height: '60'
+            }
+        }
     }
 };
 
-// Helper function to ensure text is within length limits
+/**
+ * Helper function to truncate text while maintaining word boundaries
+ */
 const truncateText = (text, maxLength) => {
     if (!text) return '';
-    const truncated = text.substring(0, maxLength);
-    return truncated.length < text.length ? `${truncated}...` : truncated;
+    if (text.length <= maxLength) return text;
+
+    const truncated = text.slice(0, maxLength).trim();
+    const lastSpace = truncated.lastIndexOf(' ');
+    return lastSpace > 0 ? truncated.slice(0, lastSpace) + '...' : truncated + '...';
 };
 
-// Helper to generate breadcrumbs structured data
+/**
+ * Generate breadcrumb structured data
+ */
 const generateBreadcrumbs = (items) => ({
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: items.map((item, index) => ({
         '@type': 'ListItem',
         position: index + 1,
-        name: item.name,
-        item: `${SEO_CONFIG.baseUrl}${item.path}`
+        item: {
+            '@id': `${SEO_CONFIG.site.baseUrl}${item.path}`,
+            name: item.name
+        }
     }))
 });
 
-// Enhanced meta tags generator
+/**
+ * Generate WebSite structured data
+ */
+const generateWebsiteSchema = () => ({
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: SEO_CONFIG.site.name,
+    url: SEO_CONFIG.site.baseUrl,
+    potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+            '@type': 'EntryPoint',
+            urlTemplate: `${SEO_CONFIG.site.baseUrl}/search/{search_term_string}`
+        },
+        'query-input': 'required name=search_term_string'
+    }
+});
+
+/**
+ * Generate Article structured data
+ */
+const generateArticleSchema = (post) => ({
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: truncateText(post.content, 110),
+    description: post.preview || truncateText(post.content, SEO_CONFIG.seo.maxDescriptionLength),
+    author: {
+        '@type': 'Person',
+        name: 'Anonymous'
+    },
+    publisher: SEO_CONFIG.schema.organization,
+    datePublished: post.createdAt,
+    dateModified: post.updatedAt || post.createdAt,
+    mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `${SEO_CONFIG.site.baseUrl}/${post.slug}-${post.uuid}`
+    },
+    image: {
+        '@type': 'ImageObject',
+        url: SEO_CONFIG.branding.defaultImage.url,
+        width: SEO_CONFIG.branding.defaultImage.width,
+        height: SEO_CONFIG.branding.defaultImage.height
+    }
+});
+
+/**
+ * Main meta tag generator function
+ */
 const generateMetaTags = (type, data = {}) => {
     const meta = {
-        title: '',
-        description: '',
-        canonical: '',
-        structured: [],  // Array to support multiple structured data objects
-        openGraph: {},
-        twitter: {},
-        meta: [], // Additional meta tags
-        links: [] // Additional link tags
+        basic: [],        // Basic meta tags
+        opengraph: [],    // Open Graph meta tags
+        twitter: [],      // Twitter meta tags
+        links: [],        // Link tags
+        structured: [],   // Structured data
+        custom: []        // Custom meta tags
     };
 
-    // Common meta tags for all pages
-    meta.meta.push(
-        { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { 'http-equiv': 'X-UA-Compatible', content: 'IE=edge' },
-        { name: 'format-detection', content: 'telephone=no' }
-    );
+    // Default values
+    const defaults = {
+        title: SEO_CONFIG.site.baseTitle,
+        description: SEO_CONFIG.site.baseDescription,
+        url: SEO_CONFIG.site.baseUrl,
+        image: SEO_CONFIG.branding.defaultImage.url,
+        robots: SEO_CONFIG.seo.robots.default
+    };
 
+    // Process by page type
     switch (type) {
         case 'home':
-            meta.title = SEO_CONFIG.baseTitle;
-            meta.description = SEO_CONFIG.baseDescription;
-            meta.canonical = SEO_CONFIG.baseUrl;
-            
-            // WebSite structured data
-            meta.structured.push({
-                '@context': 'https://schema.org',
-                '@type': 'WebSite',
-                name: SEO_CONFIG.siteName,
-                description: SEO_CONFIG.baseDescription,
-                url: SEO_CONFIG.baseUrl,
-                potentialAction: {
-                    '@type': 'SearchAction',
-                    target: {
-                        '@type': 'EntryPoint',
-                        urlTemplate: `${SEO_CONFIG.baseUrl}/search/{search_term_string}`
-                    },
-                    'query-input': 'required name=search_term_string'
-                }
-            });
+            meta.structured.push(generateWebsiteSchema());
             break;
 
-        case 'post':
-            const cleanContent = striptags(data.content || '');
-            const preview = truncateText(cleanContent, 160);
-            const postUrl = `${SEO_CONFIG.baseUrl}/${data.slug}-${data.uuid}`;
-            
-            // Enhanced title with engagement indicators
-            const titlePrefix = data.views > 1000 ? 'Popular: ' : '';
-            meta.title = `${titlePrefix}${truncateText(preview, 60)} | ${SEO_CONFIG.siteName}`;
-            meta.description = preview;
-            meta.canonical = postUrl;
+        case 'post': {
+            if (!data.post) throw new Error('Post data required for post type');
 
-            // Article structured data
-            meta.structured.push({
-                '@context': 'https://schema.org',
-                '@type': 'DiscussionForumPosting',
-                headline: truncateText(preview, 110),
-                datePublished: data.createdAt,
-                dateModified: data.createdAt,
-                url: postUrl,
-                text: cleanContent, // Adding required 'text' field
-                author: {
-                    '@type': 'Person',
-                    name: 'Anonymous',
-                    url: `${SEO_CONFIG.baseUrl}/anonymous` // Adding required 'url' field for author
-                },
-                interactionStatistic: {
-                    '@type': 'InteractionCounter',
-                    interactionType: 'https://schema.org/ReadAction',
-                    userInteractionCount: data.views
-                },
-                publisher: {
-                    '@type': 'Organization',
-                    name: SEO_CONFIG.siteName,
-                    url: SEO_CONFIG.baseUrl,
-                    logo: {
+            // Format dates properly
+            const publishDate = new Date(data.post.createdAt).toISOString();
+            const modifyDate = new Date(data.post.updatedAt || data.post.createdAt).toISOString();
+
+            // Create clean description without unwanted characters
+            const cleanContent = data.post.content
+                .replace(/[^\w\s.,!?-]/g, '') // Remove special characters except basic punctuation
+                .trim();
+            const postDesc = data.post.preview || truncateText(cleanContent, SEO_CONFIG.seo.maxDescriptionLength);
+            const postTitle = truncateText(cleanContent, SEO_CONFIG.seo.maxTitleLength);
+            const postUrl = `${SEO_CONFIG.site.baseUrl}/${data.post.slug}-${data.post.uuid}`;
+
+            // Add basic meta tags
+            meta.basic.push(
+                { name: 'article:published_time', content: publishDate },
+                { name: 'article:modified_time', content: modifyDate },
+                { name: 'author', content: 'Anonymous' },
+                { charset: 'utf-8' },
+                { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
+                { name: 'robots', content: data.robots || 'index, follow' },
+                { name: 'description', content: postDesc }
+            );
+
+            // Add OpenGraph tags
+            meta.opengraph.push(
+                { property: 'og:title', content: `${postTitle} | ${SEO_CONFIG.site.name}` },
+                { property: 'og:description', content: postDesc },
+                { property: 'og:url', content: postUrl },
+                { property: 'og:type', content: 'article' },
+                { property: 'og:site_name', content: SEO_CONFIG.site.name },
+                { property: 'og:image', content: SEO_CONFIG.branding.defaultImage.url },
+                { property: 'og:image:width', content: SEO_CONFIG.branding.defaultImage.width },
+                { property: 'og:image:height', content: SEO_CONFIG.branding.defaultImage.height },
+                { property: 'og:locale', content: SEO_CONFIG.site.defaultLocale },
+                { property: 'article:published_time', content: publishDate },
+                { property: 'article:modified_time', content: modifyDate },
+                { property: 'article:author', content: 'Anonymous' }
+            );
+
+            // Add Twitter tags
+            meta.twitter.push(
+                { name: 'twitter:card', content: SEO_CONFIG.social.twitter.card },
+                { name: 'twitter:site', content: SEO_CONFIG.social.twitter.site },
+                { name: 'twitter:title', content: `${postTitle} | ${SEO_CONFIG.site.name}` },
+                { name: 'twitter:description', content: postDesc },
+                { name: 'twitter:image', content: SEO_CONFIG.branding.defaultImage.url }
+            );
+
+            // Add custom meta tags for engagement metrics
+            if (data.post.qualityRating !== undefined) {
+                meta.custom.push({ name: 'quality-score', content: data.post.qualityRating });
+            }
+            if (data.post.views !== undefined) {
+                meta.custom.push({ name: 'view-count', content: data.post.views });
+            }
+            if (data.readingTime) {
+                meta.custom.push({ name: 'reading-time', content: data.readingTime });
+            }
+
+            // Add structured data
+            meta.structured.push(
+                {
+                    '@context': 'https://schema.org',
+                    '@type': 'Article',
+                    headline: postTitle,
+                    description: postDesc,
+                    author: {
+                        '@type': 'Person',
+                        name: 'Anonymous'
+                    },
+                    publisher: SEO_CONFIG.schema.organization,
+                    datePublished: publishDate,
+                    dateModified: modifyDate,
+                    mainEntityOfPage: {
+                        '@type': 'WebPage',
+                        '@id': postUrl
+                    },
+                    image: {
                         '@type': 'ImageObject',
-                        url: `${SEO_CONFIG.baseUrl}/images/logo.png`,
-                        width: '190',
-                        height: '60'
+                        url: SEO_CONFIG.branding.defaultImage.url,
+                        width: SEO_CONFIG.branding.defaultImage.width,
+                        height: SEO_CONFIG.branding.defaultImage.height
                     }
                 },
-                mainEntityOfPage: {
-                    '@type': 'WebPage',
-                    '@id': postUrl
-                }
-            });
-
-            // Add breadcrumbs
-            meta.structured.push(generateBreadcrumbs([
-                { name: 'Home', path: '/' },
-                { name: 'Posts', path: '/browse/latest' },
-                { name: truncateText(preview, 30), path: `/${data.slug}-${data.uuid}` }
-            ]));
-
-            // Additional meta tags for posts
-            meta.meta.push(
-                { name: 'article:published_time', content: data.createdAt },
-                { name: 'article:section', content: 'Anonymous Thoughts' },
-                { name: 'robots', content: 'max-snippet:-1, max-image-preview:large, max-video-preview:-1' }
+                generateBreadcrumbs([
+                    { name: 'Home', path: '/' },
+                    { name: 'Posts', path: '/browse/latest' },
+                    { name: postTitle, path: `/${data.post.slug}-${data.post.uuid}` }
+                ])
             );
-            break;
+
+            return {
+                title: `${postTitle} | ${SEO_CONFIG.site.name}`,
+                meta: {
+                    basic: meta.basic,
+                    opengraph: meta.opengraph,
+                    twitter: meta.twitter,
+                    custom: meta.custom
+                },
+                links: meta.links,
+                structured: meta.structured,
+                canonical: postUrl
+            };
+        }
+
+        case 'search': {
+            const searchQuery = data.query || '';
+            const page = data.page || 1;
+            const isFirstPage = page === 1;
+            const totalResults = data.total || 0;
+
+            // Add basic meta tags
+            meta.basic.push(
+                { charset: 'utf-8' },
+                { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
+                { name: 'robots', content: data.robots || 'noindex, follow' },
+                { name: 'description', content: data.description },
+                { name: 'language', content: 'en' }
+            );
+
+            // Add Open Graph tags
+            meta.opengraph.push(
+                { property: 'og:title', content: data.title },
+                { property: 'og:description', content: data.description },
+                { property: 'og:url', content: `${SEO_CONFIG.site.baseUrl}/search/${encodeURIComponent(searchQuery)}` },
+                { property: 'og:type', content: 'website' },
+                { property: 'og:site_name', content: SEO_CONFIG.site.name }
+            );
+
+            // Add Twitter Card tags
+            meta.twitter.push(
+                { name: 'twitter:card', content: 'summary' },
+                { name: 'twitter:title', content: data.title },
+                { name: 'twitter:description', content: data.description }
+            );
+
+            // Add pagination links if available
+            if (data.pagination) {
+                if (data.pagination.prevUrl) {
+                    meta.links.push({ rel: 'prev', href: data.pagination.prevUrl });
+                }
+                if (data.pagination.nextUrl) {
+                    meta.links.push({ rel: 'next', href: data.pagination.nextUrl });
+                }
+            }
+
+            return {
+                title: data.title,
+                meta: {
+                    basic: meta.basic,
+                    opengraph: meta.opengraph,
+                    twitter: meta.twitter,
+                    custom: meta.custom
+                },
+                links: meta.links,
+                structured: meta.structured,
+                canonical: `${SEO_CONFIG.site.baseUrl}/search/${encodeURIComponent(searchQuery)}`
+            };
+        }
 
         case 'browse':
             const section = data.section || 'latest';
             const page = data.page || 1;
             const isFirstPage = page === 1;
-            
-            meta.title = `${section === 'popular' ? 'Most Popular' : 'Latest'} Anonymous Thoughts ${isFirstPage ? '' : `| Page ${page}`}`;
-            meta.description = `Browse ${section === 'popular' ? 'popular' : 'recent'} anonymous thoughts, stories, and ideas shared by people worldwide${isFirstPage ? '' : ` - Page ${page}`}.`;
-            meta.canonical = `${SEO_CONFIG.baseUrl}/browse/${section}${isFirstPage ? '' : `?page=${page}`}`;
 
-            // CollectionPage structured data
-            meta.structured.push({
-                '@context': 'https://schema.org',
-                '@type': 'CollectionPage',
-                name: meta.title,
-                description: meta.description,
-                url: meta.canonical,
-                isPartOf: {
-                    '@type': 'WebSite',
-                    name: SEO_CONFIG.siteName,
-                    url: SEO_CONFIG.baseUrl
-                }
-            });
+            defaults.title = `${section === 'popular' ? 'Most Popular' : 'Latest'} Anonymous Thoughts${!isFirstPage ? ` | Page ${page}` : ''}`;
+            defaults.description = `Browse ${section === 'popular' ? 'popular' : 'recent'} anonymous thoughts and stories${!isFirstPage ? ` - Page ${page}` : ''}.`;
 
-            // Add pagination meta tags
+            // Add pagination meta
             if (data.pagination) {
                 if (data.pagination.prevUrl) {
                     meta.links.push({ rel: 'prev', href: data.pagination.prevUrl });
@@ -196,94 +344,50 @@ const generateMetaTags = (type, data = {}) => {
                 }
             }
             break;
-            case 'search':
-                const searchQuery = data.query || '';
-                const searchPage = data.page || 1;
-                const isFirstPage_s = searchPage === 1;
-                const totalResults = data.total || 0;
-                
-                // Prepare title and description
-                meta.title = searchQuery ? 
-                    `Search Results for "${truncateText(searchQuery, 50)}"${!isFirstPage_s ? ` | Page ${searchPage}` : ''} | ${SEO_CONFIG.siteName}` :
-                    `Search Anonymous Thoughts | ${SEO_CONFIG.siteName}`;
-                
-                meta.description = searchQuery ?
-                    `Browse search results for "${truncateText(searchQuery, 50)}". Found ${totalResults} anonymous thoughts and stories.` :
-                    'Search through anonymous thoughts and stories shared by people worldwide.';
-                
-                meta.canonical = `${SEO_CONFIG.baseUrl}/search/${encodeURIComponent(searchQuery)}${!isFirstPage_s ? `?page=${searchPage}` : ''}`;
-
-                // SearchResultsPage structured data
-                meta.structured.push({
-                    '@context': 'https://schema.org',
-                    '@type': 'SearchResultsPage',
-                    name: meta.title,
-                    description: meta.description,
-                    url: meta.canonical,
-                    mainEntity: {
-                        '@type': 'ItemList',
-                        numberOfItems: totalResults,
-                        itemListOrder: 'https://schema.org/ItemListOrderDescending',
-                        url: meta.canonical
-                    },
-                    isPartOf: {
-                        '@type': 'WebSite',
-                        name: SEO_CONFIG.siteName,
-                        url: SEO_CONFIG.baseUrl
-                    }
-                });
-
-                // Add breadcrumbs
-                meta.structured.push(generateBreadcrumbs([
-                    { name: 'Home', path: '/' },
-                    { name: 'Search', path: '/search' },
-                    ...(searchQuery ? [{ name: `Results for "${truncateText(searchQuery, 30)}"`, path: `/search/${searchQuery}` }] : [])
-                ]));
-
-                // Add pagination meta tags
-                if (data.pagination) {
-                    if (data.pagination.prevUrl) {
-                        meta.links.push({ rel: 'prev', href: data.pagination.prevUrl });
-                    }
-                    if (data.pagination.nextUrl) {
-                        meta.links.push({ rel: 'next', href: data.pagination.nextUrl });
-                    }
-                }
-
-                // Add noindex for search results to prevent search engine indexing
-                meta.meta.push(
-                    { name: 'robots', content: 'noindex, follow' }
-                );
-            break;
     }
 
-    // Common OpenGraph tags
-    meta.openGraph = {
-        ...SEO_CONFIG.openGraph,
-        title: meta.title,
-        description: meta.description,
-        url: meta.canonical,
-        site_name: SEO_CONFIG.siteName,
-        updated_time: data.createdAt || new Date().toISOString()
+    // Add basic meta tags
+    meta.basic.push(
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
+        { name: 'robots', content: data.robots || defaults.robots },
+        { name: 'description', content: data.description || defaults.description }
+    );
+
+    // Add OpenGraph meta tags
+    meta.opengraph.push(
+        { property: 'og:title', content: data.title || defaults.title },
+        { property: 'og:description', content: data.description || defaults.description },
+        { property: 'og:url', content: data.url || defaults.url },
+        { property: 'og:type', content: type === 'post' ? 'article' : 'website' },
+        { property: 'og:site_name', content: SEO_CONFIG.site.name },
+        { property: 'og:image', content: data.image || defaults.image },
+        { property: 'og:image:width', content: SEO_CONFIG.branding.defaultImage.width },
+        { property: 'og:image:height', content: SEO_CONFIG.branding.defaultImage.height },
+        { property: 'og:locale', content: SEO_CONFIG.site.defaultLocale }
+    );
+
+    // Add Twitter meta tags
+    meta.twitter.push(
+        { name: 'twitter:card', content: SEO_CONFIG.social.twitter.card },
+        { name: 'twitter:site', content: SEO_CONFIG.social.twitter.site },
+        { name: 'twitter:title', content: data.title || defaults.title },
+        { name: 'twitter:description', content: data.description || defaults.description },
+        { name: 'twitter:image', content: data.image || defaults.image }
+    );
+
+    return {
+        title: data.title || defaults.title,
+        meta: {
+            basic: meta.basic,
+            opengraph: meta.opengraph,
+            twitter: meta.twitter,
+            custom: meta.custom
+        },
+        links: meta.links,
+        structured: meta.structured,
+        canonical: data.url || defaults.url
     };
-
-    // Common Twitter tags
-    meta.twitter = {
-        ...SEO_CONFIG.twitter,
-        title: truncateText(meta.title, 70),
-        description: truncateText(meta.description, 200)
-    };
-
-    // Add alternate language links
-    SEO_CONFIG.alternateLanguages.forEach(lang => {
-        meta.links.push({
-            rel: 'alternate',
-            hreflang: lang.lang,
-            href: lang.url + (meta.canonical.replace(SEO_CONFIG.baseUrl, ''))
-        });
-    });
-
-    return meta;
 };
 
 module.exports = {
