@@ -460,6 +460,46 @@ router.get('/:slugId', async (req, res) => {
         const postDescription = post.preview || post.content.substring(0, 160).trim();
 
         console.log('[Route] Successfully preparing post view with SEO data');
+        const meta = {
+            title: `${postTitle}... | Anonymous Shares`,
+            description: `${postDescription}...`,
+            canonical: `${process.env.BASE_URL || ''}${correctUrl}`,
+            ogType: 'article',
+            publishedTime: post.createdAt,
+            modifiedTime: post.createdAt,
+            author: 'Anonymous',
+            logo: '/images/logo.png', // Make sure this file exists in public/images/
+            ogImage: '/images/default-share.png', // Make sure this exists
+            structured: [
+                {
+                    '@context': 'https://schema.org',
+                    '@type': 'Article',
+                    headline: postTitle,
+                    author: {
+                        '@type': 'Person',
+                        name: 'Anonymous'
+                    },
+                    publisher: {
+                        '@type': 'Organization',
+                        name: 'Anonymous Shares',
+                        logo: {
+                            '@type': 'ImageObject',
+                            url: `${process.env.BASE_URL || ''}/images/logo.png`,
+                            width: '190',
+                            height: '60'
+                        }
+                    },
+                    datePublished: post.createdAt,
+                    dateModified: post.createdAt,
+                    image: `${process.env.BASE_URL || ''}/images/default-share.png`,
+                    mainEntityOfPage: {
+                        '@type': 'WebPage',
+                        '@id': `${process.env.BASE_URL || ''}${correctUrl}`
+                    }
+                }
+            ]
+        };
+
         res.render('view', {
             currentPage: 'view',
             pageType: 'post',
@@ -481,15 +521,7 @@ router.get('/:slugId', async (req, res) => {
                 wordCount
             },
             recentPosts,
-            meta: {
-                title: `${postTitle}... | Anonymous Shares`,
-                description: `${postDescription}...`,
-                canonical: `${process.env.BASE_URL || ''}${correctUrl}`,
-                ogType: 'article',
-                publishedTime: post.createdAt,
-                modifiedTime: post.createdAt,
-                author: 'Anonymous'
-            }
+            meta // Pass the full meta object
         });
 
     } catch (err) {

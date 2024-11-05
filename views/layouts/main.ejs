@@ -1,64 +1,86 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= meta?.openGraph?.locale?.split('_')[0] || 'en' %>" dir="ltr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <%
     try {
         // Get page type and data from locals
         const pageType = locals.pageType || 'home';
         const pageData = locals.pageData || {};
         
-        // Debug logging
-        console.log('[Template] Generating meta tags for:', {
-            pageType,
-            pageData: {
-                ...pageData,
-                content: pageData.content ? pageData.content.substring(0, 50) + '...' : undefined
-            }
-        });
-        
         // Generate meta tags
         const meta = generateMetaTags(pageType, pageData);
-        
-        // Debug logging
-        console.log('[Template] Generated meta tags:', {
-            title: meta.title,
-            description: meta.description?.substring(0, 50) + '...'
-        });
     %>
     
-    <title><%= meta.title || 'Anonymous Shares' %></title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     
     <!-- Primary Meta Tags -->
+    <title><%= meta.title || 'Anonymous Shares' %></title>
     <meta name="description" content="<%= meta.description || 'Share your thoughts anonymously with the world.' %>">
     <link rel="canonical" href="<%= meta.canonical || (locals.baseUrl || '') + (locals.currentUrl || '') %>">
     
+    <!-- Dynamic Meta Tags -->
+    <% if (meta.meta && Array.isArray(meta.meta)) { %>
+        <% meta.meta.forEach(function(tag) { %>
+            <meta <%= Object.entries(tag).map(([key, value]) => `${key}="${value}"`).join(' ') %>>
+        <% }); %>
+    <% } %>
+
+    <!-- Dynamic Link Tags -->
+    <% if (meta.links && Array.isArray(meta.links)) { %>
+        <% meta.links.forEach(function(link) { %>
+            <link <%= Object.entries(link).map(([key, value]) => `${key}="${value}"`).join(' ') %>>
+        <% }); %>
+    <% } %>
+    
     <!-- Open Graph Tags -->
-    <meta property="og:type" content="<%= meta.openGraph.type || 'website' %>">
-    <meta property="og:site_name" content="<%= meta.openGraph.site_name || 'Anonymous Shares' %>">
-    <meta property="og:title" content="<%= meta.openGraph.title || meta.title || 'Anonymous Shares' %>">
-    <meta property="og:description" content="<%= meta.openGraph.description || meta.description || 'Share your thoughts anonymously with the world.' %>">
-    <meta property="og:url" content="<%= meta.openGraph.url || meta.canonical || (locals.baseUrl || '') + (locals.currentUrl || '') %>">
-    <meta property="og:locale" content="<%= meta.openGraph.locale || 'en_US' %>">
+    <meta property="og:type" content="<%= meta.openGraph?.type || 'website' %>">
+    <meta property="og:site_name" content="<%= meta.openGraph?.site_name || 'Anonymous Shares' %>">
+    <meta property="og:title" content="<%= meta.openGraph?.title || meta.title || 'Anonymous Shares' %>">
+    <meta property="og:description" content="<%= meta.openGraph?.description || meta.description || 'Share your thoughts anonymously with the world.' %>">
+    <meta property="og:url" content="<%= meta.openGraph?.url || meta.canonical || (locals.baseUrl || '') + (locals.currentUrl || '') %>">
+    <meta property="og:locale" content="<%= meta.openGraph?.locale || 'en_US' %>">
+    <% if (meta.openGraph?.image) { %>
+        <meta property="og:image" content="<%= meta.openGraph.image %>">
+        <meta property="og:image:type" content="<%= meta.openGraph?.imageType || 'image/png' %>">
+        <meta property="og:image:width" content="<%= meta.openGraph?.imageWidth || '1200' %>">
+        <meta property="og:image:height" content="<%= meta.openGraph?.imageHeight || '630' %>">
+    <% } %>
+    <% if (meta.openGraph?.updated_time) { %>
+        <meta property="og:updated_time" content="<%= meta.openGraph.updated_time %>">
+    <% } %>
     
     <!-- Twitter Card Tags -->
-    <meta name="twitter:card" content="<%= meta.twitter.card || 'summary_large_image' %>">
-    <% if (meta.twitter.site) { %>
-    <meta name="twitter:site" content="<%= meta.twitter.site %>">
+    <meta name="twitter:card" content="<%= meta.twitter?.card || 'summary_large_image' %>">
+    <% if (meta.twitter?.site) { %>
+        <meta name="twitter:site" content="<%= meta.twitter.site %>">
     <% } %>
-    <meta name="twitter:title" content="<%= meta.twitter.title || meta.title || 'Anonymous Shares' %>">
-    <meta name="twitter:description" content="<%= meta.twitter.description || meta.description || 'Share your thoughts anonymously with the world.' %>">
+    <% if (meta.twitter?.creator) { %>
+        <meta name="twitter:creator" content="<%= meta.twitter.creator %>">
+    <% } %>
+    <meta name="twitter:title" content="<%= meta.twitter?.title || meta.title || 'Anonymous Shares' %>">
+    <meta name="twitter:description" content="<%= meta.twitter?.description || meta.description || 'Share your thoughts anonymously with the world.' %>">
     
     <!-- Structured Data -->
-    <script type="application/ld+json">
-        <%- JSON.stringify(meta.structured || {}) %>
-    </script>
+    <% if (Array.isArray(meta.structured)) { %>
+        <% meta.structured.forEach(function(data) { %>
+            <script type="application/ld+json">
+                <%- JSON.stringify(data) %>
+            </script>
+        <% }); %>
+    <% } %>
     
+    <!-- Alternate Languages -->
+    <% if (meta.alternateLanguages && Array.isArray(meta.alternateLanguages)) { %>
+        <% meta.alternateLanguages.forEach(function(lang) { %>
+            <link rel="alternate" hreflang="<%= lang.lang %>" href="<%= lang.url %>">
+        <% }); %>
+    <% } %>
+
     <% } catch (error) { 
         console.error('[Error] Error generating meta tags:', error);
     %>
+        <!-- Fallback Meta Tags -->
         <title>Anonymous Shares</title>
         <meta name="description" content="Share your thoughts anonymously with the world.">
         <link rel="canonical" href="<%= locals.baseUrl || '' %>">
@@ -72,11 +94,20 @@
         <meta name="twitter:description" content="Share your thoughts anonymously with the world.">
     <% } %>
     
-    <!-- Tailwind CSS -->
+    <!-- Resource Hints -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" as="style">
+    
+    <!-- Styles -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     
-    <!-- Preconnect to CDN -->
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <!-- Security Headers -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.jsdelivr.net; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    
+    <!-- Custom Styles -->
+    <%- defineContent('styles') %>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
     <%- include('../partials/header', { currentPage: locals.currentPage || '' }) %>
@@ -85,7 +116,7 @@
         <%- body %>
         <!-- Floating Action Button -->
         <a href="/" 
-           class="absolute bottom-0 right-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-50"
+           class="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-50"
            aria-label="Create new post">
             <svg xmlns="http://www.w3.org/2000/svg" 
                  class="h-6 w-6" 
@@ -101,6 +132,20 @@
     </main>
 
     <%- include('../partials/footer') %>
+
+    <!-- Scripts -->
+    <script>
+        // Add a base error tracking
+        window.addEventListener('error', function(e) {
+            console.error('[Client Error]', {
+                message: e.message,
+                filename: e.filename,
+                lineno: e.lineno,
+                colno: e.colno,
+                timestamp: new Date().toISOString()
+            });
+        });
+    </script>
     <%- defineContent('scripts') %>
 </body>
 </html>

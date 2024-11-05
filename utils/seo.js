@@ -24,7 +24,17 @@ const SEO_CONFIG = {
     alternateLanguages: [
         { lang: 'en', url: 'https://anonymshares.com' }
         // Add more languages if needed
-    ]
+    ],
+    logo: {
+        url: '/images/logo.png',
+        width: 190,
+        height: 60
+    },
+    defaultImage: {
+        url: '/images/default-share.png',
+        width: 1200,
+        height: 630
+    }
 };
 
 // Helper function to ensure text is within length limits
@@ -105,20 +115,21 @@ const generateMetaTags = (type, data = {}) => {
             // Article structured data
             meta.structured.push({
                 '@context': 'https://schema.org',
-                '@type': 'SocialMediaPosting',
+                '@type': 'DiscussionForumPosting',
                 headline: truncateText(preview, 110),
-                description: preview,
                 datePublished: data.createdAt,
                 dateModified: data.createdAt,
                 url: postUrl,
+                text: cleanContent, // Adding required 'text' field
+                author: {
+                    '@type': 'Person',
+                    name: 'Anonymous',
+                    url: `${SEO_CONFIG.baseUrl}/anonymous` // Adding required 'url' field for author
+                },
                 interactionStatistic: {
                     '@type': 'InteractionCounter',
                     interactionType: 'https://schema.org/ReadAction',
                     userInteractionCount: data.views
-                },
-                author: {
-                    '@type': 'Person',
-                    name: 'Anonymous'
                 },
                 publisher: {
                     '@type': 'Organization',
@@ -126,7 +137,9 @@ const generateMetaTags = (type, data = {}) => {
                     url: SEO_CONFIG.baseUrl,
                     logo: {
                         '@type': 'ImageObject',
-                        url: `${SEO_CONFIG.baseUrl}/images/logo.png`
+                        url: `${SEO_CONFIG.baseUrl}/images/logo.png`,
+                        width: '190',
+                        height: '60'
                     }
                 },
                 mainEntityOfPage: {
