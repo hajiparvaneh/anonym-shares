@@ -326,15 +326,62 @@ const generateMetaTags = (type, data = {}) => {
             };
         }
 
-        case 'browse':
+        case 'browse': {
             const section = data.section || 'latest';
             const page = data.page || 1;
             const isFirstPage = page === 1;
+            const baseUrl = `${SEO_CONFIG.site.baseUrl}/browse/${section}`;
+            const currentUrl = `${baseUrl}${page > 1 ? `?page=${page}` : ''}`;
 
-            defaults.title = `${section === 'popular' ? 'Most Popular' : 'Latest'} Anonymous Thoughts${!isFirstPage ? ` | Page ${page}` : ''}`;
-            defaults.description = `Browse ${section === 'popular' ? 'popular' : 'recent'} anonymous thoughts and stories${!isFirstPage ? ` - Page ${page}` : ''}.`;
+            // Add basic meta tags
+            meta.basic.push(
+                { charset: 'utf-8' },
+                { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
+                { name: 'robots', content: 'index, follow' },
+                { name: 'description', content: data.description },
+                { name: 'language', content: 'en' }
+            );
 
-            // Add pagination meta
+            // Add Open Graph tags
+            meta.opengraph.push(
+                { property: 'og:title', content: data.title },
+                { property: 'og:description', content: data.description },
+                { property: 'og:url', content: currentUrl },
+                { property: 'og:type', content: 'website' },
+                { property: 'og:site_name', content: SEO_CONFIG.site.name }
+            );
+
+            // Add Twitter Card tags
+            meta.twitter.push(
+                { name: 'twitter:card', content: 'summary_large_image' },
+                { name: 'twitter:title', content: data.title },
+                { name: 'twitter:description', content: data.description }
+            );
+
+            // Add structured data for CollectionPage
+            meta.structured.push({
+                '@context': 'https://schema.org',
+                '@type': 'CollectionPage',
+                name: data.title,
+                description: data.description,
+                url: currentUrl,
+                isPartOf: {
+                    '@type': 'WebSite',
+                    name: SEO_CONFIG.site.name,
+                    url: SEO_CONFIG.site.baseUrl
+                }
+            });
+
+            // Add breadcrumbs structured data
+            meta.structured.push(
+                generateBreadcrumbs([
+                    { name: 'Home', path: '/' },
+                    { name: 'Browse', path: '/browse' },
+                    { name: section === 'popular' ? 'Most Popular' : 'Latest', path: `/browse/${section}` }
+                ])
+            );
+
+            // Add pagination links if available
             if (data.pagination) {
                 if (data.pagination.prevUrl) {
                     meta.links.push({ rel: 'prev', href: data.pagination.prevUrl });
@@ -343,7 +390,20 @@ const generateMetaTags = (type, data = {}) => {
                     meta.links.push({ rel: 'next', href: data.pagination.nextUrl });
                 }
             }
-            break;
+
+            return {
+                title: data.title,
+                meta: {
+                    basic: meta.basic,
+                    opengraph: meta.opengraph,
+                    twitter: meta.twitter,
+                    custom: meta.custom
+                },
+                links: meta.links,
+                structured: meta.structured,
+                canonical: currentUrl
+            };
+        }
     }
 
     // Add basic meta tags

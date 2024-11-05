@@ -336,11 +336,27 @@ router.get('/browse/:section?', async (req, res) => {
         const totalPages = Math.ceil(total / limit);
         const baseUrl = `/browse/${section}`;
 
-        // Prepare SEO title and description
+        // Prepare title and description based on section
         const sectionTitle = section === 'popular' ? 'Most Popular' : 'Latest';
         const pageTitle = page > 1 ? ` | Page ${page}` : '';
         const title = `${sectionTitle} Anonymous Thoughts${pageTitle}`;
         const description = `Browse ${section === 'popular' ? 'popular' : 'recent'} anonymous thoughts and stories. Page ${page} of ${totalPages}.`;
+
+        // Generate meta tags for browse page
+        const meta = generateMetaTags('browse', {
+            section,
+            page,
+            total,
+            title,
+            description,
+            pagination: {
+                current: page,
+                total: totalPages,
+                prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
+                nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null
+            },
+            url: `${baseUrl}${page > 1 ? `?page=${page}` : ''}`
+        });
 
         console.log('[Route] Rendering list view with posts:', posts.length);
         res.render('list', {
@@ -363,11 +379,7 @@ router.get('/browse/:section?', async (req, res) => {
                 prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
                 nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null
             },
-            meta: {
-                canonical: `${process.env.BASE_URL || ''}${baseUrl}${page > 1 ? `?page=${page}` : ''}`,
-                ogType: 'website',
-                robots: 'index, follow'
-            }
+            meta  // Add meta object to the template
         });
     } catch (err) {
         console.error('[Error] Posts listing error:', err);
@@ -377,7 +389,12 @@ router.get('/browse/:section?', async (req, res) => {
             pageData: {
                 title: 'Error Loading Posts',
                 description: 'An error occurred while loading the posts.'
-            }
+            },
+            meta: generateMetaTags('error', {
+                title: 'Error Loading Posts | Anonymous Shares',
+                description: 'An error occurred while loading the posts.',
+                robots: 'noindex, nofollow'
+            })
         });
     }
 });
