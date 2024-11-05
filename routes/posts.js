@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const Post = require('../models/Post');
+const { generateMetaTags } = require('../utils/seo');
 
 // Helper function to create SEO-friendly slug
 function createSlug(text) {
@@ -29,20 +30,37 @@ router.get('/', async (req, res) => {
             .limit(5)
             .select('slug uuid content preview createdAt views qualityRating');
 
+        // Get some stats for the homepage
+        const totalPosts = await Post.countDocuments();
+        const totalViews = await Post.aggregate([
+            { $group: { _id: null, total: { $sum: "$views" } } }
+        ]);
+        const stats = {
+            posts: totalPosts,
+            views: totalViews[0]?.total || 0
+        };
+
         console.log('[Route] Found recent posts:', recentPosts.length);
+
+        // Generate meta tags for home page
+        const meta = generateMetaTags('home', {
+            stats,
+            recentPostsCount: recentPosts.length,
+            url: '/',
+            // You can add more dynamic data here if needed
+        });
+
         res.render('home', {
             currentPage: 'home',
             pageType: 'home',
             pageData: {
                 title: 'Anonymous Shares - Share Your Thoughts Anonymously',
                 description: 'Share your thoughts, stories, and ideas anonymously with the world. A safe space for expression without identity.',
-                recentPostsCount: recentPosts.length
+                recentPostsCount: recentPosts.length,
+                stats
             },
             recentPosts,
-            meta: {
-                canonical: `${process.env.BASE_URL || ''}/`,
-                ogType: 'website'
-            }
+            meta  // Add meta object to the template
         });
     } catch (err) {
         console.error('[Error] Home page error:', err);
@@ -55,10 +73,10 @@ router.get('/', async (req, res) => {
                 recentPostsCount: 0
             },
             recentPosts: [],
-            meta: {
-                canonical: `${process.env.BASE_URL || ''}/`,
-                ogType: 'website'
-            }
+            meta: generateMetaTags('home', {
+                error: true,
+                url: '/'
+            })
         });
     }
 });
@@ -106,7 +124,7 @@ router.post('/share', async (req, res) => {
 function rateContentQuality(content) {
     console.log('[Rating] Starting quality assessment for content:', content.substring(0, 30) + '...');
     let score = 0;
-    
+
     // Length check (0-1.5 points)
     console.log('[Rating] Content length:', content.length);
     if (content.length > 10) {
@@ -130,14 +148,14 @@ function rateContentQuality(content) {
         score += 0.5;
         console.log('[Rating] +0.5 points for having 2+ sentences');
     }
-    
+
     const properCapitalization = sentences.every(s => s.trim()[0] === s.trim()[0].toUpperCase());
     if (properCapitalization) {
         score += 0.5;
         console.log('[Rating] +0.5 points for proper capitalization');
     }
     console.log('[Rating] Structure score subtotal:', score);
-    
+
     // Word variety (0-1 points)
     const words = content.toLowerCase().split(/\s+/);
     const uniqueWords = new Set(words);
@@ -151,7 +169,7 @@ function rateContentQuality(content) {
         score: varietyScore.toFixed(2)
     });
     console.log('[Rating] Variety score subtotal:', score);
-    
+
     // Punctuation usage (0-1 points)
     const punctuation = (content.match(/[.,!?;:]/g) || []).length;
     const expectedPunctuation = content.length / 100;
@@ -163,7 +181,7 @@ function rateContentQuality(content) {
         score: punctuationScore.toFixed(2)
     });
     console.log('[Rating] Punctuation score subtotal:', score);
-    
+
     // Special characters and formatting (0-0.5 points)
     if (content.includes('"')) {
         score += 0.25;
@@ -173,7 +191,7 @@ function rateContentQuality(content) {
         score += 0.25;
         console.log('[Rating] +0.25 points for commas');
     }
-    
+
     // Round to nearest 0.5 and ensure range 0-5
     const finalScore = Math.max(0, Math.min(5, Math.round(score * 2) / 2));
     console.log('[Rating] Final score calculation:', {
@@ -187,16 +205,17 @@ function rateContentQuality(content) {
             special: (content.includes('"') ? 0.25 : 0) + (content.includes(',') ? 0.25 : 0)
         }
     });
-    
+
     return finalScore;
 }
 
-// Search route
+// In posts.js - Update the search route handler
+
 router.get('/search/:query?', async (req, res) => {
     const searchQuery = req.params.query || '';
     const page = parseInt(req.query.page) || 1;
     const limit = 10;
-    
+
     console.log('[Route] GET /search/%s - Searching posts', searchQuery, {
         page,
         limit
@@ -222,16 +241,36 @@ router.get('/search/:query?', async (req, res) => {
         const totalPages = Math.ceil(total / limit);
         const baseUrl = `/search/${searchQuery}`;
 
+        // Generate meta tags for search page
+        const meta = generateMetaTags('search', {
+            query: searchQuery,
+            page: page,
+            total: total,
+            pagination: {
+                current: page,
+                total: totalPages,
+                prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
+                nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null
+            },
+            title: searchQuery ?
+                `Search Results for "${searchQuery}"` :
+                'Search Anonymous Thoughts',
+            description: searchQuery ?
+                `Browse search results for "${searchQuery}". Found ${total} anonymous thoughts and stories.` :
+                'Search through anonymous thoughts and stories shared by people worldwide.',
+            robots: 'noindex, follow' // Best practice for search pages
+        });
+
         console.log('[Route] Rendering search results with posts:', posts.length);
         res.render('search', {
             currentPage: 'search',
-            pageType: 'search',  // Add this for SEO
-            pageData: {          // Add this for SEO
+            pageType: 'search',
+            pageData: {
                 query: searchQuery,
                 page: page,
                 total: total,
-                title: searchQuery ? 
-                    `Search Results for "${searchQuery}"` : 
+                title: searchQuery ?
+                    `Search Results for "${searchQuery}"` :
                     'Search Anonymous Thoughts',
                 description: searchQuery ?
                     `Browse search results for "${searchQuery}". Found ${total} anonymous thoughts and stories.` :
@@ -251,7 +290,8 @@ router.get('/search/:query?', async (req, res) => {
                 total: totalPages,
                 prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
                 nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null
-            }
+            },
+            meta  // Add this line to pass the meta object to the template
         });
     } catch (err) {
         console.error('[Error] Search error:', err);
@@ -261,7 +301,13 @@ router.get('/search/:query?', async (req, res) => {
             pageData: {
                 title: 'Search Error',
                 description: 'An error occurred while searching posts.'
-            }
+            },
+            // Add meta tags for error page
+            meta: generateMetaTags('error', {
+                title: 'Search Error | Anonymous Shares',
+                description: 'An error occurred while searching posts.',
+                robots: 'noindex, nofollow'
+            })
         });
     }
 });
@@ -307,11 +353,27 @@ router.get('/browse/:section?', async (req, res) => {
         const totalPages = Math.ceil(total / limit);
         const baseUrl = `/browse/${section}`;
 
-        // Prepare SEO title and description
+        // Prepare title and description based on section
         const sectionTitle = section === 'popular' ? 'Most Popular' : 'Latest';
         const pageTitle = page > 1 ? ` | Page ${page}` : '';
         const title = `${sectionTitle} Anonymous Thoughts${pageTitle}`;
         const description = `Browse ${section === 'popular' ? 'popular' : 'recent'} anonymous thoughts and stories. Page ${page} of ${totalPages}.`;
+
+        // Generate meta tags for browse page
+        const meta = generateMetaTags('browse', {
+            section,
+            page,
+            total,
+            title,
+            description,
+            pagination: {
+                current: page,
+                total: totalPages,
+                prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
+                nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null
+            },
+            url: `${baseUrl}${page > 1 ? `?page=${page}` : ''}`
+        });
 
         console.log('[Route] Rendering list view with posts:', posts.length);
         res.render('list', {
@@ -334,11 +396,7 @@ router.get('/browse/:section?', async (req, res) => {
                 prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
                 nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null
             },
-            meta: {
-                canonical: `${process.env.BASE_URL || ''}${baseUrl}${page > 1 ? `?page=${page}` : ''}`,
-                ogType: 'website',
-                robots: 'index, follow'
-            }
+            meta  // Add meta object to the template
         });
     } catch (err) {
         console.error('[Error] Posts listing error:', err);
@@ -348,7 +406,12 @@ router.get('/browse/:section?', async (req, res) => {
             pageData: {
                 title: 'Error Loading Posts',
                 description: 'An error occurred while loading the posts.'
-            }
+            },
+            meta: generateMetaTags('error', {
+                title: 'Error Loading Posts | Anonymous Shares',
+                description: 'An error occurred while loading the posts.',
+                robots: 'noindex, nofollow'
+            })
         });
     }
 });
@@ -390,10 +453,11 @@ router.get('/:slugId', async (req, res) => {
             return res.status(404).render('404', {
                 currentPage: '404',
                 pageType: '404',
-                pageData: {
-                    title: 'Post Not Found',
-                    description: 'The post you are looking for could not be found.'
-                }
+                meta: generateMetaTags('error', {
+                    title: 'Post Not Found | Anonymous Shares',
+                    description: 'The post you are looking for could not be found.',
+                    robots: 'noindex, nofollow'
+                })
             });
         }
 
@@ -402,17 +466,18 @@ router.get('/:slugId', async (req, res) => {
 
         // Fetch the post with select fields
         const post = await Post.findOne({ uuid })
-            .select('uuid slug content preview views qualityRating createdAt');
+            .select('uuid slug content preview views qualityRating createdAt updatedAt');
 
         if (!post) {
             console.warn('[Route] Post not found:', uuid);
             return res.status(404).render('404', {
                 currentPage: '404',
                 pageType: '404',
-                pageData: {
-                    title: 'Post Not Found',
-                    description: 'The post you are looking for could not be found.'
-                }
+                meta: generateMetaTags('error', {
+                    title: 'Post Not Found | Anonymous Shares',
+                    description: 'The post you are looking for could not be found.',
+                    robots: 'noindex, nofollow'
+                })
             });
         }
 
@@ -450,14 +515,44 @@ router.get('/:slugId', async (req, res) => {
         post.views += 1;
         await post.save();
 
-        // Calculate reading time
+        // Calculate reading time and word count
         const wordsPerMinute = 200;
-        const wordCount = post.content.trim().split(/\s+/).length;
+        const words = post.content.trim().split(/\s+/);
+        const wordCount = words.length;
         const readingTime = Math.ceil(wordCount / wordsPerMinute);
 
-        // Prepare SEO-friendly title and description
-        const postTitle = post.content.substring(0, 60).trim();
-        const postDescription = post.preview || post.content.substring(0, 160).trim();
+        // Calculate content quality indicators
+        const uniqueWords = new Set(words.map(w => w.toLowerCase())).size;
+        const vocabularyDiversity = (uniqueWords / wordCount).toFixed(2);
+        const sentenceCount = post.content.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
+        const avgWordsPerSentence = (wordCount / sentenceCount).toFixed(1);
+
+        // Get post creation date in various formats
+        const createdDate = new Date(post.createdAt);
+        const formattedDate = createdDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Generate meta tags with enhanced data
+        const meta = generateMetaTags('post', {
+            post: {
+                ...post.toObject(),
+                formattedDate
+            },
+            readingTime,
+            wordCount,
+            contentMetrics: {
+                vocabularyDiversity,
+                avgWordsPerSentence,
+                sentenceCount
+            },
+            engagement: {
+                views: post.views,
+                qualityRating: post.qualityRating
+            }
+        });
 
         console.log('[Route] Successfully preparing post view with SEO data');
         res.render('view', {
@@ -468,28 +563,25 @@ router.get('/:slugId', async (req, res) => {
                 slug: post.slug,
                 uuid: post.uuid,
                 createdAt: post.createdAt,
+                formattedDate,
                 views: post.views,
                 qualityRating: post.qualityRating,
-                title: `${postTitle}... | Anonymous Shares`,
-                description: `${postDescription}...`,
                 readingTime,
-                wordCount
+                wordCount,
+                contentMetrics: {
+                    vocabularyDiversity,
+                    avgWordsPerSentence,
+                    sentenceCount
+                }
             },
             post: {
                 ...post.toObject(),
                 readingTime,
-                wordCount
+                wordCount,
+                formattedDate
             },
             recentPosts,
-            meta: {
-                title: `${postTitle}... | Anonymous Shares`,
-                description: `${postDescription}...`,
-                canonical: `${process.env.BASE_URL || ''}${correctUrl}`,
-                ogType: 'article',
-                publishedTime: post.createdAt,
-                modifiedTime: post.createdAt,
-                author: 'Anonymous'
-            }
+            meta  // Contains all SEO meta tags, structured data, and social sharing info
         });
 
     } catch (err) {
@@ -497,10 +589,11 @@ router.get('/:slugId', async (req, res) => {
         res.status(500).render('error', {
             currentPage: 'error',
             pageType: 'error',
-            pageData: {
-                title: 'Error Viewing Post',
-                description: 'An error occurred while trying to view this post.'
-            }
+            meta: generateMetaTags('error', {
+                title: 'Error Viewing Post | Anonymous Shares',
+                description: 'An error occurred while trying to view this post.',
+                robots: 'noindex, nofollow'
+            })
         });
     }
 });
