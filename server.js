@@ -141,17 +141,17 @@ app.use((err, req, res, next) => {
         method: req.method,
         timestamp: new Date().toISOString()
     });
-    
+
     res.status(500).render('error', {
         currentPage: 'error',
         pageData: {
             title: 'Error Occurred',
-            description: process.env.NODE_ENV === 'production' 
-                ? 'An unexpected error occurred.' 
+            description: process.env.NODE_ENV === 'production'
+                ? 'An unexpected error occurred.'
                 : err.message
         },
-        error: process.env.NODE_ENV === 'production' 
-            ? 'An unexpected error occurred.' 
+        error: process.env.NODE_ENV === 'production'
+            ? 'An unexpected error occurred.'
             : err.message,
         stack: process.env.NODE_ENV === 'production' ? null : err.stack
     });
