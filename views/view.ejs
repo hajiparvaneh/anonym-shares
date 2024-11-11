@@ -20,7 +20,8 @@
               clip-rule="evenodd"
             />
           </svg>
-          <%= new Date(post.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %>
+          <%= new Date(post.createdAt).toLocaleDateString('en-US', { year:
+          'numeric', month: 'long', day: 'numeric' }) %>
         </time>
         <span class="text-sm text-gray-600 flex items-center">
           <svg
@@ -41,14 +42,15 @@
         <!-- Added Post Rating with label -->
         <div class="flex items-center">
           <span class="text-sm text-gray-600 mr-2">Quality:</span>
-          <%- include('partials/quality-rating', { rating: post.qualityRating }) %>
+          <%- include('partials/quality-rating', { rating: post.qualityRating })
+          %>
         </div>
       </div>
 
-      <!-- Share Button -->
+      <!-- Share Button - Removed inline onclick -->
       <button
+        id="shareButton"
         type="button"
-        onclick="sharePost()"
         class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       >
         <svg
@@ -67,20 +69,10 @@
 
     <!-- SEO-friendly H1 heading -->
     <h1 class="text-2xl font-semibold text-gray-900 mb-6 leading-tight">
-      <% 
-      // Generate a suitable heading from content
-      let heading = post.content;
-      // Limit to first 100 characters and find last complete word
-      if (heading.length > 100) {
-          heading = heading.substring(0, 100);
-          const lastSpace = heading.lastIndexOf(' ');
-          if (lastSpace > 0) {
-              heading = heading.substring(0, lastSpace);
-          }
-          heading += '...';
-      }
-      %>
-      <%= heading %>
+      <% let heading = post.content; if (heading.length > 100) { heading =
+      heading.substring(0, 100); const lastSpace = heading.lastIndexOf(' '); if
+      (lastSpace > 0) { heading = heading.substring(0, lastSpace); } heading +=
+      '...'; } %> <%= heading %>
     </h1>
 
     <!-- Post Content -->
@@ -97,16 +89,12 @@
 <section class="mt-8" aria-label="More thoughts">
   <h2 class="text-xl font-semibold text-gray-900 mb-4">More Recent Thoughts</h2>
   <div class="space-y-4">
-    <% recentPosts.forEach(recentPost => { %>
-      <% if (recentPost.uuid !== post.uuid) { %>
-        <%- include('partials/post-preview-compact', { post: recentPost }) %>
-      <% } %>
-    <% }); %>
+    <% recentPosts.forEach(recentPost => { %> <% if (recentPost.uuid !==
+    post.uuid) { %> <%- include('partials/post-preview-compact', { post:
+    recentPost }) %> <% } %> <% }); %>
   </div>
 </section>
-<% } %>
-
-<%- contentFor('scripts') %>
+<% } %> <%- contentFor('scripts') %>
 <script>
   // Helper function to escape content for JavaScript strings
   function escapeJS(str) {
@@ -119,10 +107,12 @@
       .replace(/\t/g, "\\t");
   }
 
+  // Share data setup
   const shareTitle = escapeJS("<%= post.content.substring(0, 60) %>") + "...";
   const shareText = escapeJS("<%= post.preview %>");
   const shareUrl = window.location.href;
 
+  // Share function
   async function sharePost() {
     const shareData = {
       title: shareTitle,
@@ -135,14 +125,14 @@
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(shareUrl);
-        const button = document.querySelector('button[onclick="sharePost()"]');
+        const button = document.getElementById("shareButton");
         const originalText = button.innerHTML;
         button.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                    </svg>
-                    Copied!
-                `;
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+          </svg>
+          Copied!
+        `;
         setTimeout(() => {
           button.innerHTML = originalText;
         }, 2000);
@@ -160,4 +150,12 @@
       }
     }
   }
+
+  // Add event listener after DOM is loaded
+  document.addEventListener("DOMContentLoaded", function () {
+    const shareButton = document.getElementById("shareButton");
+    if (shareButton) {
+      shareButton.addEventListener("click", sharePost);
+    }
+  });
 </script>
