@@ -104,12 +104,15 @@
       .replace(/"/g, '\\"')
       .replace(/\n/g, "\\n")
       .replace(/\r/g, "\\r")
-      .replace(/\t/g, "\\t");
+      .replace(/\t/g, "\\t")
+      .replace(/\r?\n/g, " ");
   }
 
   // Share data setup
-  const shareTitle = escapeJS("<%= post.content.substring(0, 60) %>") + "...";
-  const shareText = escapeJS("<%= post.preview %>");
+  const shareTitle =
+    escapeJS("<%= post.content.replace(/\r?\n/g, '').substring(0, 60) %>") +
+    "...";
+  const shareText = escapeJS("<%= post.preview.replace(/\r?\n/g, '') %>");
   const shareUrl = window.location.href;
 
   // Share function
