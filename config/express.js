@@ -3,6 +3,7 @@ const express = require('express');
 const expressLayouts = require('express-ejs-layouts');
 const { generateMetaTags, SEO_CONFIG } = require('../utils/seo');
 const path = require('path');
+const { processContent } = require('../utils/contentHandler');
 
 function configureExpress(app) {
     // View engine setup
@@ -14,6 +15,7 @@ function configureExpress(app) {
     // Make helper functions and constants available to all views
     app.locals = {
         ...app.locals,
+        processContent,
         generateMetaTags,
         siteConfig: SEO_CONFIG,
         // Helper functions
