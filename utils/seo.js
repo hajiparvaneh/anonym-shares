@@ -497,6 +497,66 @@ const generateMetaTags = (type, data = {}) => {
                 canonical: currentUrl
             };
         }
+
+        case 'page': {
+            const baseUrl = `${SEO_CONFIG.site.baseUrl}${data.url}`;
+            const pageTitle = `${data.title} | ${SEO_CONFIG.site.name}`;
+
+            // Add basic meta tags
+            meta.basic.push(
+                { charset: 'utf-8' },
+                { name: 'viewport', content: 'width=device-width, initial-scale=1.0' },
+                { name: 'robots', content: 'index, follow' },
+                { name: 'description', content: data.description },
+                { name: 'language', content: 'en' }
+            );
+
+            // Add Open Graph tags
+            meta.opengraph.push(
+                { property: 'og:title', content: pageTitle },
+                { property: 'og:description', content: data.description },
+                { property: 'og:url', content: baseUrl },
+                { property: 'og:type', content: 'article' },
+                { property: 'og:site_name', content: SEO_CONFIG.site.name }
+            );
+
+            // Add Twitter Card tags
+            meta.twitter.push(
+                { name: 'twitter:card', content: 'summary' },
+                { name: 'twitter:title', content: pageTitle },
+                { name: 'twitter:description', content: data.description }
+            );
+
+            // Add structured data
+            meta.structured.push(
+                {
+                    '@context': 'https://schema.org',
+                    '@type': 'WebPage',
+                    name: data.title,
+                    description: data.description,
+                    url: baseUrl,
+                    publisher: SEO_CONFIG.schema.organization,
+                    dateModified: new Date().toISOString()
+                },
+                generateBreadcrumbs([
+                    { name: 'Home', path: '/' },
+                    { name: data.title, path: data.url }
+                ])
+            );
+
+            return {
+                title: pageTitle,
+                meta: {
+                    basic: meta.basic,
+                    opengraph: meta.opengraph,
+                    twitter: meta.twitter,
+                    custom: meta.custom
+                },
+                links: meta.links,
+                structured: meta.structured,
+                canonical: baseUrl
+            };
+        }
     }
 
     // Add basic meta tags
