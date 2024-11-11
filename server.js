@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const connectDB = require('./config/db');
 const postRoutes = require('./routes/posts');
+const pageRoutes = require('./routes/page-routes');
 const seoRoutes = require('./routes/seo-routes');
 const expressLayouts = require('express-ejs-layouts');
 const compression = require('compression');
@@ -107,6 +108,7 @@ app.use('/share', validateContent);
 
 // Routes
 app.use('/', seoRoutes);  // SEO routes
+app.use('/', pageRoutes);
 app.use('/', postRoutes); // Post routes
 
 // Health check endpoint
