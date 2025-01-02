@@ -260,14 +260,16 @@ router.get(
           case "land":
             // Add specific query for land-based searches
             query.content = {
-              $regex: `\\b${decodedQuery}\\b`,
+              //$regex: `\\b${decodedQuery}\\b`,
+              $regex: decodedQuery,
               $options: "i",
             };
             break;
           case "tag":
             // Add specific query for tag-based searches
             query.content = {
-              $regex: `#${decodedQuery}\\b`,
+              //$regex: `#${decodedQuery}\\b`,
+              $regex: decodedQuery,
               $options: "i",
             };
             break;
