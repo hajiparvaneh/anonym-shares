@@ -85,14 +85,27 @@ const STOP_WORDS = new Set([
 ]);
 
 /**
+ * Extracts hashtags from content
+ * @param {string} content - The post content
+ * @returns {string[]} Array of hashtags found in content
+ */
+function extractHashtags(content) {
+  const hashtagRegex = /#(\w+)/g;
+  const matches = content.match(hashtagRegex) || [];
+  return matches.map((tag) => tag.slice(1).toLowerCase()); // Remove # and convert to lowercase
+}
+
+/**
  * Generates tags from content based on word frequency
  * @param {string} content - The post content
- * @param {number} maxTags - Maximum number of tags to generate (default: 5)
+ * @param {string[]} existingTags - Tags already found in content
  * @returns {string[]} Array of generated tags
  */
-function generateTags(content) {
-  // Remove URLs to avoid them being counted as words
-  const contentWithoutUrls = content.replace(/https?:\/\/[^\s<>"']+/g, "");
+function generateTags(content, existingTags) {
+  // Remove URLs and existing hashtags to avoid counting them
+  const contentWithoutUrls = content
+    .replace(/https?:\/\/[^\s<>"']+/g, "")
+    .replace(/#\w+/g, "");
 
   // Remove special characters and split into words
   const words = contentWithoutUrls
@@ -103,6 +116,7 @@ function generateTags(content) {
       (word) =>
         word.length > 3 && // Ignore very short words
         !STOP_WORDS.has(word) && // Ignore common words
+        !existingTags.includes(word) && // Ignore words that are already hashtags
         !/^\d+$/.test(word) // Ignore numbers
     );
 
@@ -112,33 +126,61 @@ function generateTags(content) {
     wordCount[word] = (wordCount[word] || 0) + 1;
   });
 
-  // Sort words by frequency and length (prefer longer words when frequencies are equal)
+  // Sort words by frequency and length
   const sortedWords = Object.entries(wordCount).sort(
     ([wordA, countA], [wordB, countB]) => {
       if (countA === countB) {
-        return wordB.length - wordA.length; // Prefer longer words
+        return wordB.length - wordA.length;
       }
-      return countB - countA; // Sort by frequency
+      return countB - countA;
     }
   );
 
-  // Get top words (up to 5, but only if they appear more than once)
-  const tags = sortedWords
-    .filter(([_, count]) => count > 1) // Only include words that appear more than once
-    .slice(0, 5)
+  // Get top words (up to 5 minus the number of existing hashtags)
+  const remainingTagsNeeded = Math.max(0, 5 - existingTags.length);
+  const generatedTags = sortedWords
+    .filter(([_, count]) => count > 1)
+    .slice(0, remainingTagsNeeded)
     .map(([word]) => word);
 
-  return tags;
+  return generatedTags;
 }
 
 /**
- * Sanitizes content and converts URLs to clickable links
+ * Creates a formatted tag link
+ * @param {string} tag - The tag text without #
+ * @returns {string} Formatted HTML for the tag link
+ */
+function formatTagLink(tag) {
+  return `<a href="/tag/${tag}" class="inline-block bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">#${tag}</a>`;
+}
+
+/**
+ * Processes content by converting hashtags to links
+ * @param {string} content - The content to process
+ * @returns {string} Processed content with hashtag links
+ */
+function processHashtags(content) {
+  return content.replace(/#(\w+)/g, (match, tag) => {
+    const lowercaseTag = tag.toLowerCase();
+    return formatTagLink(lowercaseTag);
+  });
+}
+
+/**
+ * Sanitizes content and converts URLs and hashtags to clickable links
  */
 function processContent(content) {
-  // Generate tags first
-  const tags = generateTags(content);
+  // Extract existing hashtags first
+  const existingTags = extractHashtags(content);
 
-  // First sanitize the HTML (allow <a> tags with specific attributes)
+  // Generate additional tags if needed
+  const generatedTags = generateTags(content, existingTags);
+
+  // Combine all tags (existing + generated)
+  const allTags = [...new Set([...existingTags, ...generatedTags])];
+
+  // First sanitize the HTML
   const sanitized = sanitizeHtml(content, {
     allowedTags: ["a"],
     allowedAttributes: {
@@ -149,22 +191,22 @@ function processContent(content) {
 
   // Convert URLs to links
   const urlRegex = /(?<!["'=])(https?:\/\/[^\s<>"']+)/g;
-  const processedContent = sanitized.replace(
+  let processedContent = sanitized.replace(
     urlRegex,
     (url) =>
       `<a href="${url}" rel="nofollow" target="_blank" class="text-blue-600 hover:text-blue-800 underline break-words">${url}</a>`
   );
 
-  // Format tags with hash symbols and links
-  const formattedTags = tags.map(
-    (tag) =>
-      `<a href="/tag/${tag}" class="inline-block bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">#${tag}</a>`
-  );
+  // Convert hashtags to links in the content
+  processedContent = processHashtags(processedContent);
+
+  // Format all tags for the tag section
+  const formattedTags = allTags.map(formatTagLink).join(" ");
 
   return {
     processedContent,
-    tags,
-    formattedTags: formattedTags.join(" "),
+    tags: allTags,
+    formattedTags,
   };
 }
 
