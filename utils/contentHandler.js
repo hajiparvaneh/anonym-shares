@@ -152,7 +152,7 @@ function generateTags(content, existingTags) {
  * @returns {string} Formatted HTML for the tag link
  */
 function formatTagLink(tag) {
-  return `<a href="/tag/${tag}" class="inline-block bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-1 text-sm font-semibold text-gray-700 mr-2 mb-2">#${tag}</a>`;
+  return `<a href="/tag/${tag}" class="text-blue-600 hover:text-blue-800 underline break-words my-2">#${tag}</a>`;
 }
 
 /**
