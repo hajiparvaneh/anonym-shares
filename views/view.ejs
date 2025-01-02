@@ -76,11 +76,22 @@
     </h1>
 
     <!-- Post Content -->
+    <% const processedResult = processContent(post.content); %>
     <div class="prose max-w-none">
       <p class="whitespace-pre-line text-gray-800 text-lg leading-relaxed">
-        <%- processContent(post.content).processedContent %>
+        <%- processedResult.processedContent %>
       </p>
     </div>
+
+    <!-- Tags Section -->
+    <% if (processedResult.tags && processedResult.tags.length > 0) { %>
+    <div class="mt-8 pt-6 border-t border-gray-200">
+      <h2 class="text-sm font-medium text-gray-500 mb-4">Tags</h2>
+      <div class="flex flex-wrap gap-2">
+        <%- processedResult.formattedTags %>
+      </div>
+    </div>
+    <% } %>
   </div>
 </article>
 
