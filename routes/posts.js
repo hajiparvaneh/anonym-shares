@@ -231,106 +231,159 @@ function rateContentQuality(content) {
 
 // In posts.js - Update the search route handler
 
-router.get("/search/:query?", async (req, res) => {
-  const searchQuery = req.params.query || "";
-  const page = parseInt(req.query.page) || 1;
-  const limit = 10;
+// Search routes for multiple URL patterns
+router.get(
+  ["/search/:query?", "/land/:query", "/tag/:query"],
+  async (req, res) => {
+    const searchQuery = req.params.query || "";
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const searchType = req.path.split("/")[1]; // Gets 'search', 'land', or 'tag'
 
-  console.log("[Route] GET /search/%s - Searching posts", searchQuery, {
-    page,
-    limit,
-  });
+    console.log(
+      "[Route] GET %s/%s - Searching posts",
+      searchType,
+      searchQuery,
+      {
+        page,
+        limit,
+        type: searchType,
+      }
+    );
 
-  try {
-    let query = {};
-    if (searchQuery) {
-      const decodedQuery = decodeURIComponent(searchQuery);
-      query.content = { $regex: decodedQuery, $options: "i" };
-      console.log("[DB] Search query:", query);
-    }
+    try {
+      let query = {};
+      if (searchQuery) {
+        const decodedQuery = decodeURIComponent(searchQuery);
+        // Customize query based on search type
+        switch (searchType) {
+          case "land":
+            // Add specific query for land-based searches
+            query.content = {
+              $regex: `\\b${decodedQuery}\\b`,
+              $options: "i",
+            };
+            break;
+          case "tag":
+            // Add specific query for tag-based searches
+            query.content = {
+              $regex: `#${decodedQuery}\\b`,
+              $options: "i",
+            };
+            break;
+          default: // 'search'
+            // Default search behavior
+            query.content = {
+              $regex: decodedQuery,
+              $options: "i",
+            };
+        }
+        console.log("[DB] Search query:", query);
+      }
 
-    const posts = await Post.find(query)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .select("slug uuid content preview createdAt views qualityRating");
+      const posts = await Post.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select("slug uuid content preview createdAt views qualityRating");
 
-    const total = await Post.countDocuments(query);
-    console.log("[Route] Found total posts:", total);
+      const total = await Post.countDocuments(query);
+      console.log("[Route] Found total posts:", total);
 
-    const totalPages = Math.ceil(total / limit);
-    const baseUrl = `/search/${searchQuery}`;
+      const totalPages = Math.ceil(total / limit);
+      const baseUrl = `/${searchType}/${searchQuery}`;
 
-    // Generate meta tags for search page
-    const meta = generateMetaTags("search", {
-      query: searchQuery,
-      page: page,
-      total: total,
-      pagination: {
-        current: page,
-        total: totalPages,
-        prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
-        nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null,
-      },
-      title: searchQuery
-        ? `Search Results for "${searchQuery}"`
-        : "Search Anonymous Thoughts",
-      description: searchQuery
-        ? `Browse search results for "${searchQuery}". Found ${total} anonymous thoughts and stories.`
-        : "Search through anonymous thoughts and stories shared by people worldwide.",
-      robots: "noindex, follow", // Best practice for search pages
-    });
+      // Customize title and description based on search type
+      let title, description;
+      switch (searchType) {
+        case "land":
+          title = searchQuery
+            ? `Land Posts about "${searchQuery}"`
+            : "Browse Land Posts";
+          description = searchQuery
+            ? `Browse land-specific posts about "${searchQuery}". Found ${total} anonymous thoughts and stories.`
+            : "Browse through land-specific anonymous thoughts and stories.";
+          break;
+        case "tag":
+          title = searchQuery
+            ? `Posts tagged with #${searchQuery}`
+            : "Browse Tagged Posts";
+          description = searchQuery
+            ? `Browse posts tagged with #${searchQuery}. Found ${total} anonymous thoughts and stories.`
+            : "Browse through tagged anonymous thoughts and stories.";
+          break;
+        default:
+          title = searchQuery
+            ? `Search Results for "${searchQuery}"`
+            : "Search Anonymous Thoughts";
+          description = searchQuery
+            ? `Browse search results for "${searchQuery}". Found ${total} anonymous thoughts and stories.`
+            : "Search through anonymous thoughts and stories shared by people worldwide.";
+      }
 
-    console.log("[Route] Rendering search results with posts:", posts.length);
-    res.render("search", {
-      currentPage: "search",
-      pageType: "search",
-      pageData: {
+      // Generate meta tags for search page
+      const meta = generateMetaTags(searchType, {
         query: searchQuery,
         page: page,
         total: total,
-        title: searchQuery
-          ? `Search Results for "${searchQuery}"`
-          : "Search Anonymous Thoughts",
-        description: searchQuery
-          ? `Browse search results for "${searchQuery}". Found ${total} anonymous thoughts and stories.`
-          : "Search through anonymous thoughts and stories shared by people worldwide.",
         pagination: {
           current: page,
           total: totalPages,
           prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
           nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null,
         },
-      },
-      search: searchQuery,
-      posts,
-      total,
-      pagination: {
-        current: page,
-        total: totalPages,
-        prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
-        nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null,
-      },
-      meta, // Add this line to pass the meta object to the template
-    });
-  } catch (err) {
-    console.error("[Error] Search error:", err);
-    res.status(500).render("error", {
-      currentPage: "error",
-      pageType: "error",
-      pageData: {
-        title: "Search Error",
-        description: "An error occurred while searching posts.",
-      },
-      // Add meta tags for error page
-      meta: generateMetaTags("error", {
-        title: "Search Error | Anonymous Shares",
-        description: "An error occurred while searching posts.",
-        robots: "noindex, nofollow",
-      }),
-    });
+        title,
+        description,
+        robots: "noindex, follow", // Best practice for search pages
+      });
+
+      console.log("[Route] Rendering search results with posts:", posts.length);
+      res.render("search", {
+        currentPage: searchType,
+        pageType: searchType,
+        pageData: {
+          query: searchQuery,
+          page: page,
+          total: total,
+          title,
+          description,
+          searchType,
+          pagination: {
+            current: page,
+            total: totalPages,
+            prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
+            nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null,
+          },
+        },
+        search: searchQuery,
+        posts,
+        total,
+        pagination: {
+          current: page,
+          total: totalPages,
+          prevUrl: page > 1 ? `${baseUrl}?page=${page - 1}` : null,
+          nextUrl: page < totalPages ? `${baseUrl}?page=${page + 1}` : null,
+        },
+        meta,
+      });
+    } catch (err) {
+      console.error("[Error] Search error:", err);
+      res.status(500).render("error", {
+        currentPage: "error",
+        pageType: "error",
+        pageData: {
+          title: "Search Error",
+          description: "An error occurred while searching posts.",
+        },
+        meta: generateMetaTags("error", {
+          title: "Search Error | Anonymous Shares",
+          description: "An error occurred while searching posts.",
+          robots: "noindex, nofollow",
+        }),
+      });
+    }
   }
-});
+);
 
 // Browse/List route
 router.get("/browse/:section?", async (req, res) => {
