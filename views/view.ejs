@@ -39,7 +39,6 @@
           </svg>
           <%= post.views.toLocaleString() %> views
         </span>
-        <!-- Added Post Rating with label -->
         <div class="flex items-center">
           <span class="text-sm text-gray-600 mr-2">Quality:</span>
           <%- include('partials/quality-rating', { rating: post.qualityRating })
@@ -47,7 +46,6 @@
         </div>
       </div>
 
-      <!-- Share Button - Removed inline onclick -->
       <button
         id="shareButton"
         type="button"
@@ -76,20 +74,25 @@
     </h1>
 
     <!-- Post Content -->
-    <% const processedResult = processContent(post.content); %>
     <div class="prose max-w-none">
       <p class="whitespace-pre-line text-gray-800 text-lg leading-relaxed">
-        <%- processedResult.processedContent %>
+        <%- post.processedContent ||
+        processContent(post.content).processedContent %>
       </p>
     </div>
 
     <!-- Tags Section -->
-    <% if (processedResult.tags && processedResult.tags.length > 0) { %>
+    <% let tags, formattedTags; if (post.tags && post.tags.length > 0) { tags =
+    post.tags; formattedTags = tags.map(tag => `<a
+      href="/tag/${tag}"
+      class="text-blue-600 hover:text-blue-800 underline break-words my-2"
+      >#${tag}</a
+    >`).join(' '); } else { const processedResult =
+    processContent(post.content); tags = processedResult.tags; formattedTags =
+    processedResult.formattedTags; } %> <% if (tags && tags.length > 0) { %>
     <div class="mt-8 pt-6 border-t border-gray-200">
       <h2 class="text-sm font-medium text-gray-500 mb-4">Tags</h2>
-      <div class="flex flex-wrap gap-2">
-        <%- processedResult.formattedTags %>
-      </div>
+      <div class="flex flex-wrap gap-2"><%- formattedTags %></div>
     </div>
     <% } %>
   </div>
