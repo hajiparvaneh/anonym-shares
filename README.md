@@ -1,128 +1,81 @@
-# Anonymous Thoughts Sharing Platform
+# Anonymous Thoughts Sharing Web Platform
 
 A simple web application that allows users to share their thoughts anonymously. Built with Node.js, Express, MongoDB, and Docker.
+
+## 🌍 Live Demos
+- **Production:** [www.anonymshares.com](https://www.anonymshares.com)
+- **Staging:** [stage1001.anonymshares.com](https://stage1001.anonymshares.com)
 
 ## Features
 
 - 📝 Anonymous post creation
 - 🔗 Unique URL for each post
-- 📖 Paginated list of posts
+- 📚 Paginated list of posts
 - 🔍 Sort by latest or most viewed
 - 🎨 Clean, responsive UI with Tailwind CSS
-- 🐳 Docker support for multi-environment deployment
+- 🐫 Docker support for multi-environment deployment
 - 🔒 MongoDB authentication
-- 🌍 Environment-specific configurations
-- 💾 Persistent data storage
+- 🌍 Environment-specific configurations (staging & production)
+- 💿 Persistent data storage
 - 🏥 Health checks for all services
 
-## Prerequisites
+---
 
-- Docker and Docker Compose
-- Node.js 20.x (for local development)
-- MongoDB (for local development)
-
-## Environment Setup
-
-The application supports three environments: development, staging, and production.
-
-### Development Setup
-
-1. Clone the repository:
-
+## 🚀 Quick Start
+### **1️⃣ Clone the Repository**
 ```bash
-git clone <repository-url>
-cd anonymous-thoughts
+git clone https://github.com/hajiparvaneh/anonym-shares.git
+cd anonym-shares
 ```
 
-2. Create a `.env` file:
+### **2️⃣ Setup Environment Variables**
+Secrets are managed in **GitHub Actions** and injected automatically.
 
+For running **staging** or **production** locally in Docker, set a temporary MongoDB username and password in `.env.staging` and `.env.production`, but **do not commit them**.
+
+Example:
 ```env
-NODE_ENV=development
-PORT=3000
-COMPOSE_PROJECT_NAME=anonymous-sharing-dev
-
-# MongoDB Configuration
-DB_NAME=anonymous-sharing
-MONGO_USER=dev_user
-MONGO_PASSWORD=dev_password
-MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@db:27017/${DB_NAME}?authSource=admin
-
-# Application Configuration
-LOG_LEVEL=debug
+MONGO_USER=temp_user
+MONGO_PASSWORD=temp_password
 ```
 
-3. Start the development environment:
-
+### **3️⃣ Start the Application**
 ```bash
 docker compose up --build
 ```
-
-### Staging Setup
-
-1. Create `.env.staging`:
-
-```env
-NODE_ENV=staging
-PORT=3001
-COMPOSE_PROJECT_NAME=anonymous-sharing-staging
-COMPOSE_FILE=docker-compose.staging.yml
-
-# MongoDB Configuration
-DB_NAME=anonymous-sharing-staging
-MONGO_USER=staging_user
-MONGO_PASSWORD=your_strong_staging_password
-MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@db:27017/${DB_NAME}?authSource=admin
-
-# Application Configuration
-LOG_LEVEL=debug
-
-# Resource Limits
-MEMORY_LIMIT=512M
-CPU_LIMIT=0.5
-```
-
-2. Start staging environment:
-
+For **staging or production**, use:
 ```bash
 docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
-```
-
-### Production Setup
-
-1. Create `.env.production`:
-
-```env
-NODE_ENV=production
-PORT=3002
-COMPOSE_PROJECT_NAME=anonymous-sharing-prod
-COMPOSE_FILE=docker-compose.production.yml
-
-# MongoDB Configuration
-DB_NAME=anonymous-sharing-prod
-MONGO_USER=prod_user
-MONGO_PASSWORD=your_very_strong_production_password
-MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@db:27017/${DB_NAME}?authSource=admin&retryWrites=true&w=majority
-
-# Application Configuration
-LOG_LEVEL=error
-
-# Resource Limits
-MEMORY_LIMIT=1G
-CPU_LIMIT=1
-```
-
-2. Start production environment:
-
-```bash
 docker compose -f docker-compose.production.yml --env-file .env.production up -d
 ```
+---
 
-## Project Structure
+## 🔒 GitHub Secrets
+Before deploying, **add these secrets to your GitHub repository**:
 
+| Secret Name             | Description |
+|-------------------------|------------|
+| `GH_PAT`               | GitHub Personal Access Token |
+| `STAGING_HOST`         | Staging server host |
+| `STAGING_USERNAME`     | SSH username for staging |
+| `STAGING_SSH_KEY`      | SSH private key for staging |
+| `STAGING_MONGO_USER`   | Staging database username |
+| `STAGING_MONGO_PASSWORD` | Staging database password |
+| `STAGING_MONGODB_URI`  | Full MongoDB connection URI for staging |
+| `PROD_HOST`            | Production server host |
+| `PROD_USERNAME`        | SSH username for production |
+| `PROD_SSH_KEY`         | SSH private key for production |
+| `PROD_MONGO_USER`      | Production database username |
+| `PROD_MONGO_PASSWORD`  | Production database password |
+| `PROD_MONGODB_URI`     | Full MongoDB connection URI for production |
+
+---
+
+## 🏰 Project Structure
 ```
 anonymous-sharing/
 ├── config/
-│   └── db.js           # Database configuration with environment support
+│   └── db.js           # Database configuration
 ├── models/
 │   └── Post.js         # Post model definition
 ├── routes/
@@ -131,30 +84,43 @@ anonymous-sharing/
 │   ├── create.ejs      # Create post page
 │   ├── view.ejs        # View single post
 │   └── list.ejs        # List all posts
-├── docker-compose.yml              # Development configuration
-├── docker-compose.staging.yml      # Staging configuration
-├── docker-compose.production.yml    # Production configuration
-├── .env                # Development environment variables
-├── .env.staging       # Staging environment variables
-├── .env.production    # Production environment variables
+├── docker-compose.yml               # Development configuration
+├── docker-compose.staging.yml       # Staging configuration
+├── docker-compose.production.yml     # Production configuration
+├── .env.staging                      # Staging (no secrets, managed in GH Actions)
+├── .env.production                    # Production (no secrets, managed in GH Actions)
 └── server.js          # Application entry point
 ```
+---
 
 ## API Endpoints
 
-- `GET /` - Home page with post creation form
-- `POST /post` - Create a new post
-- `GET /view/:uuid` - View a specific post
-- `GET /list` - List all posts with pagination
-  - Query params:
-    - `page`: Page number (default: 1)
-    - `sort`: 'latest' or 'views' (default: 'latest')
-    - `search`: Search term (optional)
+- `GET /` - Home page with recent posts
+- `POST /share` - Submit a new anonymous post
+- `GET /search/:query?` - Search for posts
+- `GET /land/:query` - Search posts related to land (like tag)
+- `GET /tag/:query` - Search posts by tag
+- `GET /browse/:section?` - Browse posts (`latest` or `popular`)
+- `GET /api/search?q=<query>` - API endpoint for searching posts
+- `GET /:slugId` - View a specific post
 
-## Docker Commands
+---
 
-### Development
+## 🏥 Health Checks
 
+The application includes health checks for both the application and MongoDB:
+
+- Application: `http://localhost:<PORT>/health`
+  - Development: Port `3000`
+  - Staging: Port `3001`
+  - Production: Port `3002`
+- MongoDB: Internal health check every 10 seconds
+
+---
+
+## 🛠 Docker Commands
+
+### **Development**
 ```bash
 # Start development environment
 docker compose up -d
@@ -166,8 +132,7 @@ docker compose logs -f
 docker compose down
 ```
 
-### Staging
-
+### **Staging**
 ```bash
 # Start staging environment
 docker compose -f docker-compose.staging.yml --env-file .env.staging up -d
@@ -179,8 +144,7 @@ docker compose -f docker-compose.staging.yml --env-file .env.staging logs -f
 docker compose -f docker-compose.staging.yml --env-file .env.staging down
 ```
 
-### Production
-
+### **Production**
 ```bash
 # Start production environment
 docker compose -f docker-compose.production.yml --env-file .env.production up -d
@@ -192,46 +156,17 @@ docker compose -f docker-compose.production.yml --env-file .env.production logs 
 docker compose -f docker-compose.production.yml --env-file .env.production down
 ```
 
-## Health Checks
+---
 
-The application includes health checks for both the application and MongoDB:
+## ⚠️ Security Best Practices
 
-- Application: `http://localhost:<PORT>/health`
-  - Development: Port 3000
-  - Staging: Port 3001
-  - Production: Port 3002
-- MongoDB: Internal health check every 10 seconds
+- **Secrets should only be set via GitHub Secrets.**  
+- **Never commit `.env` files with sensitive data.**  
+- **Use different credentials for staging and production.**  
+- **Enable MongoDB authentication in all environments.**  
+- **Rotate credentials periodically.**
 
-## Resource Limits
-
-### Development
-
-- App: 0.5 CPU, 512MB RAM
-- MongoDB: Default
-
-### Staging
-
-- App: 0.5 CPU, 512MB RAM
-- MongoDB: Default with authentication
-
-### Production
-
-- App: 1 CPU, 1GB RAM
-- MongoDB: Default with authentication and improved reliability
-
-## Security Considerations
-
-1. Environment Variables:
-
-   - Use strong passwords in staging and production
-   - Never commit .env files to version control
-   - Rotate MongoDB credentials regularly
-   - Use different ports for each environment to avoid conflicts
-
-2. MongoDB Security:
-   - Authentication enabled in all environments
-   - Separate users for each environment
-   - Different database names for each environment
+---
 
 ## Contributing
 
@@ -240,6 +175,9 @@ The application includes health checks for both the application and MongoDB:
 3. Make your changes
 4. Submit a pull request
 
-## License
+---
 
+## 📞 License
 MIT License - feel free to use this project for your own purposes.
+
+---
