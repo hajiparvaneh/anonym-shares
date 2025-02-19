@@ -21,9 +21,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get the version
+      - name: Get the version (for tags or develop)
         id: get_tag
-        run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          else
+            echo "TAG=develop" >> $GITHUB_ENV
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -38,7 +43,7 @@ jobs:
       - name: Convert repository name to lowercase
         id: repo_name
         run: |
-          echo "LOWERCASE_REPO=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+          echo "LOWERCASE_REPO=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
@@ -46,13 +51,13 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ steps.repo_name.outputs.LOWERCASE_REPO }}:${{ steps.get_tag.outputs.TAG || 'develop' }}
-            ghcr.io/${{ steps.repo_name.outputs.LOWERCASE_REPO }}:staging
-          labels: ${{ steps.meta.outputs.labels }}
+            ghcr.io/${{ env.LOWERCASE_REPO }}:${{ env.TAG }}
+            ghcr.io/${{ env.LOWERCASE_REPO }}:staging
           no-cache: true
 
   deploy-staging:
     needs: build-and-push
+    if: success()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -69,8 +74,8 @@ jobs:
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             echo "Setting environment variables..."
-            export GITHUB_REPOSITORY="${{ needs.build-and-push.outputs.lowercase_repo }}"
-            export TAG="${{ needs.build-and-push.outputs.tag || 'develop' }}"
+            export GITHUB_REPOSITORY="${{ env.LOWERCASE_REPO }}"
+            export TAG="${{ env.TAG }}"
 
             echo "Deploying application..."
             REPO_DIR="anonymous-sharing"
