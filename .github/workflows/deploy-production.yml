@@ -1,9 +1,12 @@
 name: CI/CD Production Pipeline
 
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
       - main
+  push:
     tags:
       - "v*"  # Only final versions, no -rc
 
@@ -13,7 +16,7 @@ permissions:
 
 jobs:
   build-and-push:
-    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-rc') || github.ref == 'refs/heads/main'
+    if: github.event.pull_request.merged == true || (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-rc'))
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.get_tag.outputs.TAG }}

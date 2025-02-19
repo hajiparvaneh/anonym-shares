@@ -1,9 +1,12 @@
 name: CI/CD Staging Pipeline
 
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
       - develop
+  push:
     tags:
       - "v*-rc*"
 
@@ -13,7 +16,7 @@ permissions:
 
 jobs:
   build-and-push:
-    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/develop'
+    if: github.event.pull_request.merged == true || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.get_tag.outputs.TAG }}
@@ -21,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get the version (for tags or develop)
+      - name: Get the version (for release candidates or develop branch)
         id: get_tag
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
