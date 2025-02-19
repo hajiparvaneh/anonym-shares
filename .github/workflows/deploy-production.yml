@@ -1,11 +1,11 @@
-name: CI/CD Staging Pipeline
+name: CI/CD Production Pipeline
 
 on:
   push:
     branches:
-      - develop
+      - main
     tags:
-      - "v*-rc*"
+      - "v*"  # Only final versions, no -rc
 
 permissions:
   contents: read
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build-and-push:
-    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/develop'
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-rc') || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.get_tag.outputs.TAG }}
@@ -21,13 +21,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get the version (for tags or develop)
+      - name: Get the version (for final releases or main branch)
         id: get_tag
         run: |
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           else
-            echo "TAG=develop" >> $GITHUB_ENV
+            echo "TAG=main" >> $GITHUB_ENV
           fi
 
       - name: Set up Docker Buildx
@@ -52,21 +52,21 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ env.LOWERCASE_REPO }}:${{ env.TAG }}
-            ghcr.io/${{ env.LOWERCASE_REPO }}:staging
+            ghcr.io/${{ env.LOWERCASE_REPO }}:latest
           no-cache: true
 
-  deploy-staging:
+  deploy-production:
     needs: build-and-push
     if: success()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Deploy to Staging
+      - name: Deploy to Production
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USERNAME }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USERNAME }}
+          key: ${{ secrets.PROD_SSH_KEY }}
           script: |
             set -e  # Exit immediately if any command fails
 
@@ -88,19 +88,19 @@ jobs:
               cd "$REPO_DIR"
             fi
 
-            echo "Updating .env.staging with secrets..."
-            sed -i "s|MONGO_USER=.*|MONGO_USER=${{ secrets.STAGING_MONGO_USER }}|" .env.staging
-            sed -i "s|MONGO_PASSWORD=.*|MONGO_PASSWORD=${{ secrets.STAGING_MONGO_PASSWORD }}|" .env.staging
-            sed -i "s|MONGODB_URI=.*|MONGODB_URI=${{ secrets.STAGING_MONGODB_URI }}|" .env.staging
+            echo "Updating .env.production with secrets..."
+            sed -i "s|MONGO_USER=.*|MONGO_USER=${{ secrets.PROD_MONGO_USER }}|" .env.production
+            sed -i "s|MONGO_PASSWORD=.*|MONGO_PASSWORD=${{ secrets.PROD_MONGO_PASSWORD }}|" .env.production
+            sed -i "s|MONGODB_URI=.*|MONGODB_URI=${{ secrets.PROD_MONGODB_URI }}|" .env.production
 
             echo "Stopping existing containers..."
-            docker-compose -f docker-compose.staging.yml down
+            docker-compose -f docker-compose.production.yml down
 
             echo "Pulling latest images..."
-            TAG=${TAG} docker-compose -f docker-compose.staging.yml pull
+            TAG=${TAG} docker-compose -f docker-compose.production.yml pull
 
             echo "Starting services..."
-            TAG=${TAG} docker-compose -f docker-compose.staging.yml --env-file .env.staging up -d --build
+            TAG=${TAG} docker-compose -f docker-compose.production.yml --env-file .env.production up -d --build
 
             echo "Cleaning up..."
             docker image prune -f
