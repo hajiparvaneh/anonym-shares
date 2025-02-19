@@ -122,7 +122,8 @@ jobs:
           username: ${{ secrets.PROD_USERNAME }}
           key: ${{ secrets.PROD_SSH_KEY }}
           script: |
-            set -e
+            set -e  # Exit immediately if any command fails
+
             echo "Logging into GitHub Container Registry..."
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
@@ -148,6 +149,11 @@ jobs:
               git clone --branch ${TAG} https://${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git "$REPO_DIR"
               cd "$REPO_DIR"
             fi
+ 
+            echo "Updating .env.production with secrets..."
+            sed -i "s|MONGO_USER=.*|MONGO_USER=${{ secrets.PROD_MONGO_USER }}|" .env.production
+            sed -i "s|MONGO_PASSWORD=.*|MONGO_PASSWORD=${{ secrets.PROD_MONGO_PASSWORD }}|" .env.production
+            sed -i "s|MONGODB_URI=.*|MONGODB_URI=${{ secrets.PROD_MONGODB_URI }}|" .env.production
 
             echo "Stopping existing containers..."
             docker-compose -f docker-compose.production.yml down
